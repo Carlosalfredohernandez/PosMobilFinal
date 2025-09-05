@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:posmobil/src/models/boleta.dart';
 import 'package:posmobil/src/models/detalle.dart';
-// import 'package:punto_de_venta/src/providers/boletas_provider.dart';
+// import 'package:posmobil/src/providers/boletas_provider.dart';
 
 class InformesDetalleVentaPage extends StatelessWidget {
   Boleta? boleta;

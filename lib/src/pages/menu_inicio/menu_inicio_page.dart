@@ -6,7 +6,7 @@ import 'package:posmobil/src/models/navigation_bar.dart';
 import 'package:posmobil/src/models/response_api.dart';
 import 'package:posmobil/src/models/usuario.dart';
 import 'package:posmobil/src/providers/usuarios_empresa_provider.dart';
-// import 'package:punto_de_venta/src/pages/cliente/productos/lista/cliente_productos_lista_page.dart';
+// import 'package:posmobil/src/pages/cliente/productos/lista/cliente_productos_lista_page.dart';
 // import '../cliente/productos/crear/cliente_productos_lista_crear_page.dart';
 
 

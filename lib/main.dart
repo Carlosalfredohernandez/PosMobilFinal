@@ -5,41 +5,51 @@ import 'package:get_storage/get_storage.dart';
 import 'package:posmobil/src/models/usuario.dart';
 import 'package:posmobil/src/pages/login/login_page.dart';
 /*
-import 'package:punto_de_venta/src/models/usuario.dart';
-import 'package:punto_de_venta/src/pages/agregar/agregar_page.dart';
-import 'package:punto_de_venta/src/pages/cliente/categorias/crear/cliente_categorias_crear_page.dart';
-import 'package:punto_de_venta/src/pages/cliente/caja/create/cliente_caja_create_page.dart';
-import 'package:punto_de_venta/src/pages/cliente/perfil/editar/cliente_perfil_editar_page.dart';
-import 'package:punto_de_venta/src/pages/cliente/productos/crear/cliente_productos_lista_crear_page.dart';
-import 'package:punto_de_venta/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
-import 'package:punto_de_venta/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
-import 'package:punto_de_venta/src/pages/informes/ventas/informes_ventas_page.dart';
-import 'package:punto_de_venta/src/pages/inventarios/create/inventarios_create_page.dart';
-import 'package:punto_de_venta/src/pages/inventarios/informes/inventarios_informes_page.dart';
-import 'package:punto_de_venta/src/pages/inventarios/menu/inventarios_menu_page.dart';
-import 'package:punto_de_venta/src/pages/inventarios/vista/inventarios_vista_page.dart';
-import 'package:punto_de_venta/src/pages/login/login_page.dart';
-import 'package:punto_de_venta/src/pages/mantenedores/bodega/mantenedores_bodega_page.dart';
-import 'package:punto_de_venta/src/pages/mantenedores/local/mantenedores_local_page.dart';
-import 'package:punto_de_venta/src/pages/mantenedores/maestros/busqueda/mantenedores_maestros_page.dart';
-import 'package:punto_de_venta/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_page.dart';
-import 'package:punto_de_venta/src/pages/mantenedores/menu/mantenedores_menu_page.dart';
-import 'package:punto_de_venta/src/pages/mantenedores/poveedores/crear/mantenedores_proveedores_page.dart';
-import 'package:punto_de_venta/src/pages/mantenedores/productos/mantenedores_productos_page.dart';
-import 'package:punto_de_venta/src/pages/menu_inicio/menu_inicio_cajero_page.dart';
-import 'package:punto_de_venta/src/pages/menu_inicio/menu_inicio_page.dart';
-import 'package:punto_de_venta/src/pages/registro/registro_page.dart';
-
-import 'src/pages/configuraciones/impresoras.dart';
+import 'package:posmobil/src/models/usuario.dart';
+import 'package:posmobil/src/pages/agregar/agregar_page.dart';
+import 'package:posmobil/src/pages/cliente/categorias/crear/cliente_categorias_crear_page.dart';
+import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_page.dart';
+import 'package:posmobil/src/pages/cliente/perfil/editar/cliente_perfil_editar_page.dart';
+import 'package:posmobil/src/pages/cliente/productos/crear/cliente_productos_lista_crear_page.dart';
+import 'package:posmobil/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
+import 'package:posmobil/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
+import 'package:posmobil/src/pages/informes/ventas/informes_ventas_page.dart';
+import 'package:posmobil/src/pages/inventarios/create/inventarios_create_page.dart';
+import 'package:posmobil/src/pages/inventarios/informes/inventarios_informes_page.dart';
+import 'package:posmobil/src/pages/inventarios/menu/inventarios_menu_page.dart';
+import 'package:posmobil/src/pages/inventarios/vista/inventarios_vista_page.dart';
+import 'package:posmobil/src/pages/login/login_page.dart';
+import 'package:posmobil/src/pages/mantenedores/bodega/mantenedores_bodega_page.dart';
+import 'package:posmobil/src/pages/mantenedores/local/mantenedores_local_page.dart';
+import 'package:posmobil/src/pages/mantenedores/maestros/busqueda/mantenedores_maestros_page.dart';
+import 'package:posmobil/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_page.dart';
+import 'package:posmobil/src/pages/mantenedores/menu/mantenedores_menu_page.dart';
+import 'package:posmobil/src/pages/mantenedores/poveedores/crear/mantenedores_proveedores_page.dart';
+import 'package:posmobil/src/pages/mantenedores/productos/mantenedores_productos_page.dart';
+import 'package:posmobil/src/pages/menu_inicio/menu_inicio_cajero_page.dart';
 */
+import 'package:posmobil/src/pages/menu_inicio/menu_inicio_page.dart';
+import 'package:posmobil/src/services/bluetooth_printer_service.dart';
+//import 'package:posmobil/src/pages/registro/registro_page.dart';
+
+//import 'src/pages/configuraciones/impresoras.dart';
+
 Usuario sesionUsuario = Usuario.fromJson(GetStorage().read('usuario') ?? {});
 void main() async {
-  await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([
+  await GetStorage.init();
+
+  // ✅ Establecer orientación de pantalla
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // ✅ Registro del servicio Bluetooth
+  Get.put(BluetoothPrinterService());
+
+
+
   runApp(const MyApp());
 }
 class MyApp extends StatefulWidget {
@@ -68,9 +78,9 @@ class _MyAppState extends State<MyApp> {
       //Rutas de pages.
       getPages: [
         GetPage(name: '/', page: () => const LoginPage()),
-        /*GetPage(name: '/registro', page: () => const RegistroPage()),
+        //GetPage(name: '/registro', page: () => const RegistroPage()),
         GetPage(name: '/inicio/cliente', page: () => const MenuInicioPage()),
-        GetPage(name: '/inicio/cajero', page: () => const MenuInicioCajeroPage()),
+       /* GetPage(name: '/inicio/cajero', page: () => const MenuInicioCajeroPage()),
         GetPage(name: '/inicio/cliente/agregar/categoria', page: () => ClienteCategoriasCrearPage()),
         GetPage(name: '/inicio/cliente/agregar/producto', page: () => ClienteProductosListaCrearPage()),
         GetPage(name: '/inicio/cliente/perfil/editar', page: () => ClientePerfilEditarPage()),
@@ -110,5 +120,6 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: Get.key,
     );
   }
+
 }
 

@@ -25,21 +25,37 @@ class ClienteCajaSearchPage extends SearchDelegate<Producto>{
           },
           icon: const Icon(Icons.close),
       ),
-
-      IconButton(
-        onPressed: () async {
-          String barcodeScanRes;
-          try {
-            barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
-                '#ff6666', 'Cancelar', true, ScanMode.BARCODE);
-            print(barcodeScanRes);
-          } on PlatformException {
-            barcodeScanRes = 'Fallo!';
-          }
-          query = barcodeScanRes;
-        },
-        icon: const Icon(Icons.camera_enhance_outlined),
-      ),
+IconButton(
+  onPressed: () async {
+    String barcodeScanRes = '';
+    try {
+      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
+        '#ff6666', 'Cancelar', true, ScanMode.BARCODE
+      );
+      if (barcodeScanRes != '-1') {
+        query = barcodeScanRes;
+      }
+    } on PlatformException {
+      barcodeScanRes = 'Fallo!';
+    }
+    print('Código escaneado: $barcodeScanRes');
+  },
+  icon: const Icon(Icons.camera_enhance_outlined),
+),
+      //IconButton(
+      //  onPressed: () async {
+      //    String barcodeScanRes;
+      //    try {
+      //      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
+      //          '#ff6666', 'Cancelar', true, ScanMode.BARCODE);
+      //      print(barcodeScanRes);
+      //    } on PlatformException {
+      //      barcodeScanRes = 'Fallo!';
+      //    }
+      //    query = barcodeScanRes;
+      //  },
+      //  icon: const Icon(Icons.camera_enhance_outlined),
+      //),
     ];
   }
 
@@ -68,7 +84,7 @@ class ClienteCajaSearchPage extends SearchDelegate<Producto>{
       itemCount: _filter.length,
       itemBuilder: (_, index) {
         return ListTile(
-          title: Text("${_filter[index].nombreProducto}\n${_filter[index].codigoBarra}"),
+          title: Text(_filter[index].nombreProducto.toString() + "\n" +'${_filter[index].codigoBarra.toString()}'),
           subtitle: Text('Precio: ${_filter[index].precioVenta.toString()}'),
           leading: Icon(Icons.category),
           onTap: () => controlador.addToBag(_filter[index]),

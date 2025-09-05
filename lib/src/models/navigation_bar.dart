@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:posmobil/src/models/usuario.dart';
-//import 'package:punto_de_venta/src/pages/configuraciones/impresoras.dart';
+//import 'package:posmobil/src/pages/configuraciones/impresoras.dart';
 
 class NavBar extends StatefulWidget {
   const NavBar({super.key});
