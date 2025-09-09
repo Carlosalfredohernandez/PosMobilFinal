@@ -5,6 +5,8 @@ import 'package:posmobil/src/services/bluetooth_printer_service.dart';
 class BluetoothSelectorPage extends StatelessWidget {
   final printerService = Get.find<BluetoothPrinterService>();
 
+  BluetoothSelectorPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,8 +27,13 @@ class BluetoothSelectorPage extends StatelessWidget {
             itemCount: devices.length,
             itemBuilder: (_, index) {
               final device = devices[index];
-              final name = device['name'] ?? 'Sin nombre';
-              final mac = device['macAddress'] ?? 'MAC desconocida';
+              // Compatibilidad con Map y objeto
+              final name = device is Map
+                  ? (device['name'] ?? 'Sin nombre')
+                  : (device.name ?? 'Sin nombre');
+              final mac = device is Map
+                  ? (device['address'] ?? device['macAddress'] ?? 'MAC desconocida')
+                  : (device.address ?? device.macAddress ?? 'MAC desconocida');
 
               return ListTile(
                 title: Text(name),

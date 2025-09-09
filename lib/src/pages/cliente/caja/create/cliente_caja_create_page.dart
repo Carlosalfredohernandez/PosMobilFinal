@@ -9,6 +9,8 @@ import 'package:posmobil/src/widgets/simulador_mode_banner.dart';
 class ClienteCajaCreatePage extends StatelessWidget {
   final controller = Get.put(ClienteCajaCreateController());
 
+  ClienteCajaCreatePage({super.key});
+
   void _showScanner(BuildContext context) {
     showModalBottomSheet(
       context: context,

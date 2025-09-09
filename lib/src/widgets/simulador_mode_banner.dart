@@ -1,10 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:posmobil/src/services/bluetooth_printer_service.dart';
 
 class SimulatorModeBanner extends StatelessWidget {
-  const SimulatorModeBanner({Key? key}) : super(key: key);
+  const SimulatorModeBanner({super.key});
 
   bool get isSimulatedEnvironment {
     // Alternativa rápida: detecta si estás en Android y no en un dispositivo físico

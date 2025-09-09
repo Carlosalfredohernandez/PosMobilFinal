@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:posmobil/src/services/bluetooth_printer_service.dart';
 
 class BluetoothSelectorPage extends StatefulWidget {
-  const BluetoothSelectorPage({Key? key}) : super(key: key);
+  const BluetoothSelectorPage({super.key});
 
   @override
   State<BluetoothSelectorPage> createState() => _BluetoothSelectorPageState();

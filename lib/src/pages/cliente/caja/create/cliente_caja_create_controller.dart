@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:mobile_scanner/mobile_scanner.dart'; // Nuevo plugin moderno
+// Nuevo plugin moderno
 import 'package:posmobil/src/models/boleta.dart';
 import 'package:posmobil/src/models/inventario.dart';
 import 'package:posmobil/src/models/producto.dart';

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:posmobil/src/models/producto.dart';
 import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
 import 'package:posmobil/src/providers/productos_provider.dart';
@@ -31,7 +30,7 @@ class ClienteCajaSearchController extends GetxController {
   //   }
   // }
 
-  Future<String> scanBarcodeNormal(String _codigoBarra) async {
+  Future<String> scanBarcodeNormal(String codigoBarra) async {
     String barcodeScanRes;
     try {
       barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
@@ -40,8 +39,8 @@ class ClienteCajaSearchController extends GetxController {
     } on PlatformException {
       barcodeScanRes = 'Fallo!';
     }
-    _codigoBarra = barcodeScanRes;
-    return _codigoBarra;
+    codigoBarra = barcodeScanRes;
+    return codigoBarra;
   }
 
 
