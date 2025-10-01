@@ -60,5 +60,8 @@ class LoginController extends GetxController{
     }
     return true;
   }
-
+  void logout() {
+    GetStorage().erase();
+    Get.offAllNamed('/login'); // Navega al login y limpia el historial
+  }
 }

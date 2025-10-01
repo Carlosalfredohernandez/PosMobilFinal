@@ -5,64 +5,74 @@ import 'package:posmobil/src/models/boleta.dart';
 import 'package:posmobil/src/models/response_api.dart';
 import 'package:posmobil/src/models/usuario.dart';
 
-
-class BoletasProvider extends GetConnect{
+class BoletasProvider extends GetConnect {
   String url = '${Environment.API_URL}api/boletas';
 
   Usuario userSession = Usuario.fromJson(GetStorage().read('usuario') ?? {});
 
   Future<ResponseApi> create(Boleta boleta) async {
     Response response = await post(
-        '$url/create',
-        boleta.toJson(),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': userSession.sessionToken ?? ''
-        }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
-
+      '$url/create',
+      boleta.toJson(),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': userSession.sessionToken ?? ''
+      }
+    );
     ResponseApi responseApi = ResponseApi.fromJson(response.body);
-
     return responseApi;
   }
 
   Future<List<Boleta>> getAllByUser() async {
     String userID = userSession.id.toString();
     Response response = await get(
-        '$url/getAllByUser/$userID',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': userSession.sessionToken ?? ''
-        }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
+      '$url/getAllByUser/$userID',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': userSession.sessionToken ?? ''
+      }
+    );
 
     if (response.statusCode == 401) {
       Get.snackbar('Peticion denegada', 'Tu usuario no tiene permitido leer esta informacion');
       return [];
     }
-    List<Boleta> boleta = Boleta.fromJsonList(response.body);
-
+    if (response.body == null) {
+      return [];
+    }
+    List<Boleta> boleta = Boleta.fromJsonList(
+      response.body is List
+        ? response.body
+        : response.body['data'] ?? []
+    );
     return boleta;
   }
+
   Future<List<Boleta>> getTrimedDateArray(var inicial, var fin) async {
     String userID = userSession.id.toString();
     Response response = await get(
-        '$url/getTrimedDateArray/$userID/$inicial/$fin',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': userSession.sessionToken ?? ''
-        }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
+      '$url/getTrimedDateArray/$userID/$inicial/$fin',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': userSession.sessionToken ?? ''
+      }
+    );
 
     if (response.statusCode == 401) {
       Get.snackbar('Peticion denegada', 'Tu usuario no tiene permitido leer esta informacion');
       return [];
     }
-
-    List<Boleta> boleta = Boleta.fromJsonList(response.body);
-
+    if (response.body == null) {
+      return [];
+    }
+    List<Boleta> boleta = Boleta.fromJsonList(
+      response.body is List
+        ? response.body
+        : response.body['data'] ?? []
+    );
     return boleta;
   }
+
   // Future<List<DetalleBoleta>> getSells(var idBoleta) async {
   //   Response response = await get(
   //       '$url/getSells/$idBoleta',
@@ -70,15 +80,12 @@ class BoletasProvider extends GetConnect{
   //         'Content-Type': 'application/json',
   //         'Authorization': userSession.sessionToken ?? ''
   //       }
-  //   ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
-  //
+  //   );
   //   if (response.statusCode == 401) {
   //     Get.snackbar('Peticion denegada', 'Tu usuario no tiene permitido leer esta informacion');
   //     return [];
   //   }
   //   List<DetalleBoleta> detalleBoleta = DetalleBoleta.fromJsonList(response.body);
-  //
   //   return detalleBoleta;
   // }
-
 }

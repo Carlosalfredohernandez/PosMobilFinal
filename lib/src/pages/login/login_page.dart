@@ -13,43 +13,57 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+
+  @override
+  void initState() {
+    super.initState();
+    controlador.rutController.text = '';
+    controlador.claveController.text = '';
+  }
+
   @override
   Widget build(BuildContext context) {
-
-    //Pagina de inicio 'Login'.
     return Scaffold(
+      resizeToAvoidBottomInset: true, // Permite que el contenido se ajuste con el teclado
+      appBar: AppBar(
+        title: const Text('Login'),
+        centerTitle: true,
+      ),
       bottomNavigationBar: SizedBox(
         height: 50,
         child: _textoPoweredby()
       ),
-
       body: Stack(
         children: [
-          _fondoPortada(),
-          _cajaFormulario(context),
-          Column(
-            children: [
-              _imagenPortada(),
-              _textoNombreApp()
-            ],
+          _imagenPortadaFondo(),
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.08 - 30),
+                _cajaFormulario(context),
+                SizedBox(height: 30),
+                _textoNombreApp(),
+                SizedBox(height: 10),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _fondoPortada() {
-    return Container(
-      width: double.infinity,
-      height: MediaQuery.of(context).size.height * 0.4,
-      color: Colors.blueAccent,
+  Widget _imagenPortadaFondo() {
+    return SizedBox.expand(
+      child: Image.asset(
+        'android/assets/img/Imagen_portada.png',
+        fit: BoxFit.cover,
+      ),
     );
   }
 
   Widget _cajaFormulario(BuildContext context){
     return Container(
-      height: MediaQuery.of(context).size.height * 0.45,
-      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.32, left: 50, right: 50),
+      margin: const EdgeInsets.symmetric(horizontal: 50),
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: <BoxShadow>[
@@ -60,31 +74,25 @@ class _LoginPageState extends State<LoginPage> {
           )
         ]
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            _textoIngresaInformacion(),
-            _campoTextoRut(),
-            _campoTextoClave(),
-            _botonAcceder(),
-            _textoNoCuenta()
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _textoIngresaInformacion(),
+          _campoTextoRut(),
+          _campoTextoClave(),
+          _botonAcceder(),
+        ],
       ),
     );
   }
 
-  // Widgets
-
   Widget _textoIngresaInformacion(){
     return Container(
-      margin: const EdgeInsets.only(top:50, bottom:17),
+      margin: const EdgeInsets.only(top:30, bottom:17),
       child: const Text(
-        'INGRESA TU INFORMACION',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold
-        ),
+        'INGRESA INFORMACION EMPRESA',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -95,11 +103,11 @@ class _LoginPageState extends State<LoginPage> {
       child: TextField(
         controller: controlador.rutController,
         keyboardType: TextInputType.text,
+        style: const TextStyle(fontSize: 16),
         decoration: const InputDecoration(
           hintText: 'Rut',
           prefixIcon: Icon(Icons.account_box_outlined),
         ),
-
       ),
     );
   }
@@ -110,12 +118,12 @@ class _LoginPageState extends State<LoginPage> {
       child: TextField(
         controller: controlador.claveController,
         keyboardType: TextInputType.text,
+        style: const TextStyle(fontSize: 16),
         obscureText: true,
         decoration: const InputDecoration(
           hintText: 'Contraseña',
           prefixIcon: Icon(Icons.lock_outline),
         ),
-
       ),
     );
   }
@@ -131,23 +139,6 @@ class _LoginPageState extends State<LoginPage> {
           )
       ),
     );
-
-  }
-
-  Widget _imagenPortada() {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(top: 20),
-        alignment: Alignment.center,
-        child: Image.asset(
-          'android/assets/img/Imagen_portada.png',
-          width: 170,
-          height: 170,
-
-        ),
-
-      ),
-    );
   }
 
   Widget _textoNombreApp(){
@@ -158,33 +149,6 @@ class _LoginPageState extends State<LoginPage> {
         fontWeight: FontWeight.bold,
         color: Colors.white
       ),
-    );
-  }
-
-  Widget _textoNoCuenta(){
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children:[
-        const Text(
-          '¿No tienes cuenta? ',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 17
-          ),
-        ),
-        GestureDetector(
-          onTap: () => controlador.irARegistroPage(),
-          child: const Text(
-              'Registrate Aqui',
-            style: TextStyle(
-              color: Colors.blueAccent,
-              fontSize: 17,
-              fontWeight: FontWeight.bold
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -206,10 +170,8 @@ class _LoginPageState extends State<LoginPage> {
             fontSize: 15,
             fontWeight: FontWeight.bold
           ),
-
         ),
       ],
     );
   }
-
 }

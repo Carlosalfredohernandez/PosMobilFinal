@@ -38,6 +38,8 @@ class UsuariosEmpresaProvider extends GetConnect{
     return users;
   }
 
+  
+
   Future<ResponseApi> login(String rut, String clave) async{
 
     Response response = await post(
@@ -60,7 +62,7 @@ class UsuariosEmpresaProvider extends GetConnect{
     return responseApi;
   }
 
-  Future<ResponseApi> update(Usuario usuario, var idRol, var local) async {
+  Future<ResponseApi> update(UsuarioEmpresa usuario, var idRol, var local) async {
     Response response = await put(
         '$url/update/$idRol/$local',
         usuario.toJson(),
@@ -69,6 +71,7 @@ class UsuariosEmpresaProvider extends GetConnect{
           //'Authorization': userSession.sessionToken!
         }
     );
+    
     if (response.body == null) {
       Get.snackbar('Error', 'No se pudo actualizar la informacion');
       return ResponseApi();
@@ -82,4 +85,72 @@ class UsuariosEmpresaProvider extends GetConnect{
 
     return responseApi;
   }
+  Future<ResponseApi> updateEm(Usuario usuario, var idRol, var local) async {
+    Response response = await put(
+        '$url/update/$idRol/$local',
+        usuario.toJson(),
+        headers: {
+          'Content-Type': 'application/json',
+          //'Authorization': userSession.sessionToken!
+        }
+    );
+    
+    if (response.body == null) {
+      Get.snackbar('Error', 'No se pudo actualizar la informacion');
+      return ResponseApi();
+    }
+    if (response.statusCode == 401) {
+      Get.snackbar('Error', 'No esta autorizado para realizar esta peticion');
+      return ResponseApi();
+    }
+
+    ResponseApi responseApi = ResponseApi.fromJson(response.body);
+
+    return responseApi;
+  }
+  Future<ResponseApi> updateE(UsuarioEmpresa usuario, var idRol, var local) async {
+    Response response = await put(
+        '$url/update/$idRol/$local',
+        usuario.toJson(),
+        headers: {
+          'Content-Type': 'application/json',
+          //'Authorization': userSession.sessionToken!
+        }
+    );
+    
+    if (response.body == null) {
+      Get.snackbar('Error', 'No se pudo actualizar la informacion');
+      return ResponseApi();
+    }
+    if (response.statusCode == 401) {
+      Get.snackbar('Error', 'No esta autorizado para realizar esta peticion');
+      return ResponseApi();
+    }
+
+    ResponseApi responseApi = ResponseApi.fromJson(response.body);
+
+    return responseApi;
+  }
+  Future<List<UsuarioEmpresa>> findUsersE() async {
+  var id = userSession.id;
+  Response response = await get(
+    '$url/findUsers/$id',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  );
+
+  if (response.statusCode == 401) {
+    Get.snackbar('Peticion Denegada', 'No esta autorizado para realizar esta peticion');
+    return [];
+  }
+
+  if (response.body == null || response.body is! List) {
+    return [];
+  }
+
+  List<UsuarioEmpresa> users = UsuarioEmpresa.fromJsonList(response.body);
+  return users;
+}
+  
 }

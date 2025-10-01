@@ -64,7 +64,7 @@ class MantenedoresMaestrosUsuariosController extends GetxController{
           id: id,
           rut: rut
       );
-      ResponseApi responseApi = await usuariosEmpresaProvider.update(usuario, rolId, nombrelocal.value);
+      ResponseApi responseApi = await usuariosEmpresaProvider.updateEm(usuario, rolId, nombrelocal.value);
 
       if (responseApi.success == true ){
         Get.snackbar('Proceso terminado', responseApi.message ?? '');

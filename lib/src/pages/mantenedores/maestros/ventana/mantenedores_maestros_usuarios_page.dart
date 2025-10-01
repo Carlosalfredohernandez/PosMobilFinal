@@ -3,12 +3,15 @@ import 'package:get/get.dart';
 import 'package:posmobil/src/models/local.dart';
 import 'package:posmobil/src/models/usuario.dart';
 import 'package:posmobil/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_controller.dart';
+
 class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
+  final Usuario? usuario;
+  late final MantenedoresMaestrosUsuariosController controlador;
 
-  Usuario? usuario;
-  late MantenedoresMaestrosUsuariosController controlador;
-
-  MantenedoresMaestrosUsuariosPage({super.key, @required this.usuario}){
+  MantenedoresMaestrosUsuariosPage({super.key, required this.usuario}) {
+    if (usuario == null) {
+      throw Exception('El usuario no puede ser nulo');
+    }
     controlador = Get.put(MantenedoresMaestrosUsuariosController(usuario!));
   }
 
@@ -16,18 +19,22 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() => Scaffold(
       appBar: AppBar(
-        title: Text('USUARIO ELEGIDO'),
+        title: const Text(
+          'USUARIO ELEGIDO',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
-      body: Stack( // POSICIONAR ELEMENTOS UNO ENCIMA DEL OTRO
+      body: Stack(
         children: [
           _backgroundCover(context),
           _cajaFormulario(context)
         ],
       ),
-      bottomNavigationBar:_buttonActualizar(context),
+      bottomNavigationBar: _buttonActualizar(context),
     ));
   }
+
   Widget _backgroundCover(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -36,19 +43,23 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     );
   }
 
-  Widget _cajaFormulario(BuildContext context){
+  Widget _cajaFormulario(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
-      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.03, left: 50, right: 50),
+      margin: EdgeInsets.only(
+        top: MediaQuery.of(context).size.height * 0.03,
+        left: 50,
+        right: 50,
+      ),
       decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-                color: Colors.blueGrey,
-                blurRadius:  15,
-                offset: Offset(0, 0.75)
-            )
-          ]
+        color: Colors.white,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.blueGrey,
+            blurRadius: 15,
+            offset: Offset(0, 0.75),
+          )
+        ],
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -63,14 +74,14 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
             _dropDownLocales(controlador.locales),
             _dropDownRoles(controlador.roles),
             _campoTextoClave(),
-            _campoTextoConfirmarClave()
+            _campoTextoConfirmarClave(),
           ],
         ),
       ),
     );
   }
 
-  Widget _textName(){
+  Widget _textName() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: ListTile(
@@ -81,7 +92,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     );
   }
 
-  Widget _textEmail(){
+  Widget _textEmail() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: ListTile(
@@ -105,6 +116,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       ),
     );
   }
+
   Widget _campoTextoRegion() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -118,6 +130,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       ),
     );
   }
+
   Widget _campoTextoCalle() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -131,6 +144,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       ),
     );
   }
+
   Widget _campoTextoNumero() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -144,6 +158,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       ),
     );
   }
+
   Widget _campoTextoComuna() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -169,10 +184,10 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
           hintText: 'Contraseña',
           prefixIcon: Icon(Icons.lock_outline),
         ),
-
       ),
     );
   }
+
   Widget _campoTextoConfirmarClave() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -184,35 +199,31 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
           hintText: 'Confirmar Contraseña',
           prefixIcon: Icon(Icons.lock_outline),
         ),
-
       ),
     );
   }
-  Widget _dropDownLocales(List<Local> locales) {
 
+  Widget _dropDownLocales(List<Local> locales) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 50),
-      margin: EdgeInsets.only(top: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 50),
+      margin: const EdgeInsets.only(top: 15),
       child: DropdownButton(
         underline: Container(
           alignment: Alignment.centerRight,
-          child: Icon(
+          child: const Icon(
             Icons.arrow_drop_down_circle,
             color: Colors.blueAccent,
           ),
         ),
         elevation: 3,
         isExpanded: true,
-        hint: Text(
+        hint: const Text(
           'Seleccionar Local',
-          style: TextStyle(
-              fontSize: 15
-          ),
+          style: TextStyle(fontSize: 15),
         ),
         items: _dropDownItems(locales),
         value: controlador.nombrelocal.value == '' ? null : controlador.nombrelocal.value,
         onChanged: (option) {
-          print('Opcion seleccionada $option');
           controlador.nombrelocal.value = option.toString();
         },
       ),
@@ -228,30 +239,27 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       ));
     }
     return list;
-
   }
 
   Widget _dropDownRoles(List roles) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 50),
-      margin: EdgeInsets.only(top: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 50),
+      margin: const EdgeInsets.only(top: 15),
       child: DropdownButton(
         underline: Container(
           alignment: Alignment.centerRight,
-          child: Icon(
+          child: const Icon(
             Icons.arrow_drop_down_circle,
             color: Colors.blueAccent,
           ),
         ),
         elevation: 3,
         isExpanded: true,
-        hint: Text(usuario?.roles![0].nombre ?? 'Elija el Rol', style: TextStyle(fontSize: 15)),
-          items: _dropDownRolItems(roles),
+        hint: Text(usuario?.roles?[0].nombre ?? 'Elija el Rol', style: const TextStyle(fontSize: 15)),
+        items: _dropDownRolItems(roles),
         value: controlador.nombreRol.value == '' ? null : controlador.nombreRol.value,
         onChanged: (option) {
-          option.toString() == '0'
-              ? controlador.rolId = 2
-              : controlador.rolId = 3;
+          controlador.rolId = option.toString() == '0' ? 2 : 3;
           controlador.nombreRol.value = option.toString();
         },
       ),
@@ -260,13 +268,12 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
 
   List<DropdownMenuItem<String>> _dropDownRolItems(List roles) {
     List<DropdownMenuItem<String>> list = [];
-    for (int i= 0;i<roles.length;i++){
+    for (int i = 0; i < roles.length; i++) {
       list.add(DropdownMenuItem(
         value: i.toString(),
         child: Text(roles[i]),
       ));
     }
-
     return list;
   }
 
@@ -275,19 +282,16 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       child: ElevatedButton(
-          onPressed: () => controlador.actualizar(),
-          // => controlador.actualizarRol(usuario?.id),
-          style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 15), backgroundColor: Colors.blueAccent
-          ),
-          child: Text(
-            'Actualizar',
-            style: TextStyle(
-                color: Colors.black
-            ),
-          )
+        onPressed: () => controlador.actualizar(),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          backgroundColor: Colors.blueAccent,
+        ),
+        child: const Text(
+          'Actualizar',
+          style: TextStyle(color: Colors.black),
+        ),
       ),
     );
   }
-
 }

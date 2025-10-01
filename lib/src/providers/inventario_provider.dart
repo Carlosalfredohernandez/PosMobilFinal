@@ -1,13 +1,15 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:posmobil/src/environment/environment.dart';
+import 'package:posmobil/src/models/detalle.dart';
 import 'package:posmobil/src/models/inventario.dart';
 import 'package:posmobil/src/models/response_api.dart';
 import 'package:posmobil/src/models/usuario.dart';
+import 'package:posmobil/src/models/detalle.dart';
 
 import '../models/producto.dart';
 
-class InventarioProvider extends GetConnect{
+class InventarioProvider extends GetConnect {
   String url = '${Environment.API_URL}api/inventario';
   Usuario userSession = Usuario.fromJson(GetStorage().read('usuario') ?? {});
 
@@ -19,7 +21,7 @@ class InventarioProvider extends GetConnect{
           'Content-Type': 'application/json',
           'Authorization': userSession.sessionToken ?? ''
         }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
+    );
 
     ResponseApi responseApi = ResponseApi.fromJson(response.body);
 
@@ -33,7 +35,7 @@ class InventarioProvider extends GetConnect{
         headers: {
           'Content-Type': 'application/json'
         }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
+    );
 
     if (response.statusCode == 401) {
       Get.snackbar('Peticion Denegada', 'No esta autorizado para realizar esta peticion');
@@ -51,7 +53,7 @@ class InventarioProvider extends GetConnect{
         headers: {
           'Content-Type': 'application/json'
         }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
+    );
 
     if (response.statusCode == 401) {
       Get.snackbar('Peticion Denegada', 'No esta autorizado para realizar esta peticion');
@@ -70,14 +72,16 @@ class InventarioProvider extends GetConnect{
           'Content-Type': 'application/json',
           'Authorization': userSession.sessionToken ?? ''
         }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
+    );
 
     if (response.statusCode == 401) {
       Get.snackbar('Peticion denegada', 'Tu usuario no tiene permitido leer esta informacion');
       return [];
     }
 
-    List<Producto> productos = Producto.fromJsonList(response.body);
+    List<Producto> productos = Producto.fromJsonList(response.body is List 
+      ? response.body 
+      : response.body['data'] ?? []);
     print(productos);
     return productos;
   }
@@ -90,7 +94,7 @@ class InventarioProvider extends GetConnect{
           'Content-Type': 'application/json',
           'Authorization': userSession.sessionToken ?? ''
         }
-    ); // ESPERAR HASTA QUE EL SERVIDOR NOS RETORNE LA RESPUESTA
+    );
 
     if (response.statusCode == 401) {
       Get.snackbar('Peticion denegada', 'Tu usuario no tiene permitido leer esta informacion');
@@ -102,4 +106,30 @@ class InventarioProvider extends GetConnect{
     return productos;
   }
 
+  // Nuevo método para DetalleBoleta
+  Future<List<DetalleBoleta>> getDetallesBoleta() async {
+    var usuario = userSession.id;
+    Response response = await get(
+       '$url/consultaInventario/$usuario',
+      //'${Environment.API_URL}/consultaInventario/$usuario',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': userSession.sessionToken ?? ''
+      }
+    );
+
+    if (response.statusCode == 401) {
+      Get.snackbar('Peticion Denegada', 'No está autorizado para realizar esta petición');
+      return [];
+    }
+    // Imprime el cuerpo de la respuesta para ver qué trae
+      print('Respuesta DetalleBoleta: ${response.body}');
+
+    List<DetalleBoleta> detalles = DetalleBoleta.fromJsonList(
+      response.body is List
+        ? response.body
+        : response.body['data'] ?? []
+    );
+    return detalles;
+  }
 }

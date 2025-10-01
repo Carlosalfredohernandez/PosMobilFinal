@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:posmobil/src/pages/mantenedores/menu/mantenedores_menu_controller.dart';
-class MantenedoresMenuPage extends StatelessWidget {
 
+class MantenedoresMenuPage extends StatelessWidget {
   MantenedoresMenuController controlador = Get.put(MantenedoresMenuController());
 
   MantenedoresMenuPage({super.key});
@@ -20,100 +20,54 @@ class MantenedoresMenuPage extends StatelessWidget {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _botonCategorias(),
-              _botonProductos(),
-              _botonMaestros(),
-              _botonLocal(),
-              _botonBodega()
+              _rectanguloOpcion('CATEGORIAS', Colors.blue, controlador.goToCategory),
+              _rectanguloOpcion('PRODUCTOS', Colors.green, controlador.goToProduct),
+              _rectanguloOpcion('USUARIOS', Colors.orange, controlador.goToUser),
+              _rectanguloOpcion('LOCALES', Colors.purple, controlador.goToLocal),
+              _rectanguloOpcion('BODEGA', Colors.red, controlador.goToBodega),
             ],
           ),
         ],
       ),
     );
   }
-  Widget _botonCategorias(){
+
+  Widget _rectanguloOpcion(String texto, Color color, VoidCallback onTap) {
     return SafeArea(
       child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-        child: ElevatedButton(
-            onPressed: () => controlador.goToCategory(),
-            child: const Text(
-                'CATEGORIAS'
-            )
+        margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              texto,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _botonMaestros(){
-    return SafeArea(
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-        child: ElevatedButton(
-            onPressed: () => controlador.goToUser(),
-            child: const Text(
-                'USUARIOS'
-            )
-        ),
-      ),
-    );
-
-  }
-  Widget _botonLocal(){
-    return SafeArea(
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-        child: ElevatedButton(
-            onPressed: () => controlador.goToLocal(),
-            child: const Text(
-                'LOCALES'
-            )
-        ),
-      ),
-    );
-
-  }
-  Widget _botonProductos(){
-    return SafeArea(
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-        child: ElevatedButton(
-            onPressed: () => controlador.goToProduct(),
-            child: const Text(
-                'PRODUCTOS'
-            )
-        ),
-      ),
-    );
-  }
-  Widget _botonBodega(){
-    return SafeArea(
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-        child: ElevatedButton(
-            onPressed: () => controlador.goToBodega(),
-            child: const Text(
-                'BODEGA'
-            )
-        ),
-      ),
-    );
-  }
-
-  Widget _botonCancelar(){
+  Widget _botonCancelar() {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       child: ElevatedButton(
-          onPressed: () => controlador.goToHome(),
-          child: const Text(
-              'CANCELAR'
-          )
+        onPressed: () => controlador.goToHome(),
+        child: const Text('CANCELAR'),
       ),
     );
   }

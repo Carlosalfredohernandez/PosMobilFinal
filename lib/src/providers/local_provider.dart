@@ -23,7 +23,23 @@ class LocalProvider extends GetConnect{
 
     return responseApi;
   }
+// ...existing code...
 
+  Future<ResponseApi> update(Local local) async {
+    Response response = await put(
+      '$url/update/${local.id}',
+      local.toJson(),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': userSession.sessionToken ?? ''
+      }
+    );
+
+    ResponseApi responseApi = ResponseApi.fromJson(response.body);
+    return responseApi;
+  }
+
+// ...existing code...
   Future<List<Local>> findLocals() async {
     var usuario = userSession.id;
     Response response = await get(

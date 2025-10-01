@@ -1,4 +1,3 @@
-// import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -6,9 +5,6 @@ import 'package:posmobil/src/models/navigation_bar.dart';
 import 'package:posmobil/src/models/response_api.dart';
 import 'package:posmobil/src/models/usuario.dart';
 import 'package:posmobil/src/providers/usuarios_empresa_provider.dart';
-// import 'package:posmobil/src/pages/cliente/productos/lista/cliente_productos_lista_page.dart';
-// import '../cliente/productos/crear/cliente_productos_lista_crear_page.dart';
-
 
 Usuario sesionUsuario = Usuario.fromJson(GetStorage().read('usuario'));
 
@@ -20,50 +16,53 @@ class MenuInicioPage extends StatefulWidget {
 }
 
 class _MenuInicioPageState extends State<MenuInicioPage> {
-
   TextEditingController rutController = TextEditingController();
   TextEditingController claveController = TextEditingController();
 
   UsuariosEmpresaProvider usuariosEmpresaProvider = UsuariosEmpresaProvider();
 
-
-
-  void irARegistroPage(){
+  void irARegistroPage() {
     Get.toNamed('/registro');
   }
 
-  void login() async{
-    String rut = rutController.text.trim();
-    String clave = claveController.text.trim();
+// ...existing code...
+void login() async {
+  String rut = rutController.text.trim();
+  String clave = claveController.text.trim();
 
-    if(validador(clave,rut)){
-      ResponseApi responseApi = await usuariosEmpresaProvider.login(rut, clave);
+  if (validador(clave, rut)) {
+    ResponseApi responseApi = await usuariosEmpresaProvider.login(rut, clave);
 
-      print('Response Api: ${responseApi.toJson()}');
+    print('Response Api: ${responseApi.toJson()}');
 
-      if (responseApi.success == true){
-        GetStorage().write('usuarioempresa', responseApi.data);
+    if (responseApi.success == true) {
+      GetStorage().write('usuarioempresa', responseApi.data);
+
+      final usuarioEmpresa = responseApi.data;
+      // Refactor: Si el rol es 1 va a caja del cliente, en caso contrario va al menú general
+      if (usuarioEmpresa != null && int.tryParse(usuarioEmpresa['rol'].toString()) == 1) {
         irAHomePage();
+      } else {
+        Get.toNamed('/menugeneral');
       }
-      else{
-        Get.snackbar('Fallido ', responseApi.message ?? '');
-      }
+    } else {
+      Get.snackbar('Fallido ', responseApi.message ?? '');
     }
   }
+}
+// ...existing code... 
 
-  void irAHomePage(){
+  void irAHomePage() {
     Get.offNamedUntil('/inicio/cliente/caja/create', (route) => false);
   }
 
-
   //Validadores.
-
-  bool validador(String clave, String rut){
+  bool validador(String clave, String rut) {
     if (rut.isEmpty) {
       Get.snackbar('Formulario no valido', 'Debes ingresar el rut de tu empresa o usuario');
       return false;
     }
-    if (clave.isEmpty){
+    if (clave.isEmpty) {
       Get.snackbar('Formulario no valido', 'Debes ingresar tu clave');
       return false;
     }
@@ -72,7 +71,6 @@ class _MenuInicioPageState extends State<MenuInicioPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       drawer: NavBar(),
       appBar: AppBar(
@@ -88,7 +86,6 @@ class _MenuInicioPageState extends State<MenuInicioPage> {
         ),
         title: Text(sesionUsuario.nombre.toString()),
         centerTitle: true,
-
       ),
       body: Stack(
         children: [
@@ -96,9 +93,9 @@ class _MenuInicioPageState extends State<MenuInicioPage> {
           _cajaFormulario(context),
         ],
       ),
-
     );
   }
+
   Widget _fondoPortada() {
     return Container(
       width: double.infinity,
@@ -107,19 +104,19 @@ class _MenuInicioPageState extends State<MenuInicioPage> {
     );
   }
 
-  Widget _cajaFormulario(BuildContext context){
+  Widget _cajaFormulario(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.55,
-      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.15, left: 50, right: 50),
+      height: MediaQuery.of(context).size.height * 0.60,
+      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.10, left: 50, right: 50),
       decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-                color: Colors.blueGrey,
-                blurRadius:  15,
-                offset: Offset(0, 0.75)
-            )
-          ]
+        color: Colors.white,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.blueGrey,
+            blurRadius: 15,
+            offset: Offset(0, 0.75),
+          )
+        ],
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -127,32 +124,29 @@ class _MenuInicioPageState extends State<MenuInicioPage> {
             _textoIngresaInformacion(),
             _campoTextoRut(),
             _campoTextoClave(),
-            _botonAcceder()
+            _botonAcceder(),
+            _botonVolverLogin(), // <-- Botón agregado
           ],
         ),
       ),
     );
   }
 
-  Widget _textoIngresaInformacion(){
+  Widget _textoIngresaInformacion() {
     return Container(
-      margin: const EdgeInsets.only(top:50, bottom:17),
+      margin: const EdgeInsets.only(top: 50, bottom: 17),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             'INGRESA TU INFORMACION',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+             textAlign: TextAlign.center, // Centra el texto
           ),
           Text(
             'DE USUARIO',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+             textAlign: TextAlign.center, // Centra el texto
           ),
         ],
       ),
@@ -169,14 +163,13 @@ class _MenuInicioPageState extends State<MenuInicioPage> {
           hintText: 'Rut',
           prefixIcon: Icon(Icons.account_box_outlined),
         ),
-
       ),
     );
   }
 
   Widget _campoTextoClave() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20,vertical: 15),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: TextField(
         controller: claveController,
         keyboardType: TextInputType.text,
@@ -185,26 +178,34 @@ class _MenuInicioPageState extends State<MenuInicioPage> {
           hintText: 'Contraseña',
           prefixIcon: Icon(Icons.lock_outline),
         ),
-
       ),
     );
   }
 
-  Widget _botonAcceder(){
+  Widget _botonAcceder() {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       child: ElevatedButton(
-          onPressed: () => login(),
-          child: const Text(
-              'ACCEDER'
-          )
+        onPressed: () => login(),
+        child: const Text('ACCEDER'),
       ),
     );
-
   }
 
-
-
-
+  Widget _botonVolverLogin() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+      child: ElevatedButton(
+        onPressed: () {
+          Get.offNamed('/login');
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.grey,
+        ),
+        child: const Text('Volver al Login'),
+      ),
+    );
+  }
 }

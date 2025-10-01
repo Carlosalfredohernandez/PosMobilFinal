@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+//import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:get/get.dart';
 import 'package:posmobil/src/models/producto.dart';
 import 'package:posmobil/src/pages/cliente/caja/search/cliente_caja_search_controller.dart';
@@ -29,9 +29,9 @@ IconButton(
   onPressed: () async {
     String barcodeScanRes = '';
     try {
-      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
-        '#ff6666', 'Cancelar', true, ScanMode.BARCODE
-      );
+      //barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
+      //  '#ff6666', 'Cancelar', true, ScanMode.BARCODE
+      //);
       if (barcodeScanRes != '-1') {
         query = barcodeScanRes;
       }
