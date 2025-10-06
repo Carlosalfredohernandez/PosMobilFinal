@@ -29,6 +29,25 @@ class Producto {
     this.proveedor,
     this.cantidad,
   });
+Producto copyWith({
+    String? id,
+    String? codigoBarra,
+    String? nombreProducto,
+    String? descripcionProducto,
+    String? precioVenta,
+    String? categoria,
+    int? cantidad,
+  }) {
+    return Producto(
+      id: id ?? this.id,
+      codigoBarra: codigoBarra ?? this.codigoBarra,
+      nombreProducto: nombreProducto ?? this.nombreProducto,
+      descripcionProducto: descripcionProducto ?? this.descripcionProducto,
+      precioVenta: precioVenta ?? this.precioVenta,
+      categoria: categoria ?? this.categoria,
+      cantidad: cantidad ?? this.cantidad,
+    );
+  }
 
 
 

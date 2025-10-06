@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_page.dart';
+import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_integrada.dart';
 import 'package:posmobil/src/pages/cliente/perfil/mantenedorlistadorusuarios/mantenedor_listar_usuarios_page.dart';
 import 'package:posmobil/src/pages/configuraciones/impresora.dart';
 import 'package:posmobil/src/pages/informes/estadisticas/estadisticas_ventas_page.dart';
@@ -85,7 +85,7 @@ class _MyAppState extends State<MyApp> {
         GetPage(name: '/', page: () => const LoginPage()),
         GetPage(name: '/registro', page: () => const RegistroPage()),
         GetPage(name: '/inicio/cliente', page: () => const MenuInicioPage()),
-        GetPage(name: '/inicio/cliente/caja/create', page: () => ClienteCajaCreatePage()),
+        GetPage(name: '/inicio/cliente/caja/create', page: () => ClienteCajaCreatePageIntegrada()),
         GetPage(name: '/inicio/cajero', page: () => const MenuInicioCajeroPage()),
         GetPage(name: '/inicio/cliente/agregar/categoria', page: () => ClienteCategoriasCrearPage()),
         GetPage(name: '/inicio/cliente/mantenedorlistadorusuarios', page: () => MantenedorListarUsuariosPage()),

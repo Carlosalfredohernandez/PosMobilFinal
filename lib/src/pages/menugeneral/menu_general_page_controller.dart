@@ -26,7 +26,8 @@ class MenuGeneralPageController extends GetxController {
     Get.offNamed('/menugeneral');
   }
   void goToInventarios() async {
-    await Get.toNamed('inventarios/informes');
+    //await Get.toNamed('inventarios/informes');
+    await Get.toNamed('inventarios/create');
     Get.offNamed('/menugeneral');
   }
 

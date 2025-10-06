@@ -1,81 +1,40 @@
-//import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
 import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
-import 'package:posmobil/src/providers/productos_provider.dart';
-import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
-class ClienteCajaSearchController extends GetxController {
+import 'package:posmobil/src/providers/productos_provider.dart' as prov;
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
-  ProductosProvider productosProvider = ProductosProvider();
+class ClienteCajaSearchController extends GetxController {
+  prov.ProductosProvider productosProvider = prov.ProductosProvider();
   ClienteCajaCreateController caja = Get.find();
 
- // List<Producto> selectedProducts = [];
-
-  // ClienteCajaSearchController(){
-  //   if (GetStorage().read('shopping_bag') != null){
-  //     if (GetStorage().read('shopping_bag') is List<Producto>){
-  //       var result = GetStorage().read('shopping_bag');
-  //       selectedProducts.clear();
-  //       selectedProducts.addAll(result);
-  //     }
-  //     else{
-  //       var result = Producto.fromJsonList(GetStorage().read('shopping_bag')).toList();
-  //       selectedProducts.clear();
-  //       selectedProducts.addAll(result);
-  //     }
-  //     caja.getTotal();
-  //   }
-  // }
-
-  /*Future<String> scanBarcodeNormal(String codigoBarra) async {
-    String barcodeScanRes;
-    try {
-      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
-          '#ff6666', 'Cancelar', true, ScanMode.BARCODE);
-      print(barcodeScanRes);
-    } on PlatformException {
-      barcodeScanRes = 'Fallo!';
+  /// Abre una pantalla de escaneo y retorna el código escaneado
+  Future<String?> scanBarcodeNormal(BuildContext context) async {
+    String? barcodeScanRes;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('Escanear código')),
+          body: MobileScanner(
+  onDetect: (capture) {
+    final List<Barcode> barcodes = capture.barcodes;
+    if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+      barcodeScanRes = barcodes.first.rawValue;
+      Navigator.of(context).pop(); // Cierra el escáner
     }
-    codigoBarra = barcodeScanRes;
-    return codigoBarra;
+  },
+),
+        ),
+      ),
+    );
+    return barcodeScanRes;
   }
-*/
 
-  void addToBag(Producto product){
-    caja.addToBag(product);
+  void addToBag(Producto product) {
+    caja.addItem(product);
     Fluttertoast.showToast(msg: 'Producto agregado');
-    // int index = selectedProducts.indexWhere((p) => p.id == product.id);
-    // if (index == -1) {
-    //   if (product.cantidad == null){
-    //     product.cantidad = 1;
-    //   }
-    //   selectedProducts.add(product);
-    //   GetStorage().write('shopping_bag', selectedProducts);
-    //   Fluttertoast.showToast(msg: 'Producto agregado_1');
-    //
-    //   var result = GetStorage().read('shopping_bag');
-    //   caja.selectedProducts.clear();
-    //   caja.selectedProducts.addAll(result);
-    //   caja.getTotal();
-    // }
-    // else {
-    //   if (product.cantidad == 0){
-    //     selectedProducts.remove(product);
-    //     product.cantidad = 1;
-    //     selectedProducts.add(product);
-    //     GetStorage().write('shopping_bag', selectedProducts);
-    //     Fluttertoast.showToast(msg: 'Producto agregado_2');
-    //
-    //     var result = GetStorage().read('shopping_bag');
-    //     caja.selectedProducts.clear();
-    //     caja.selectedProducts.addAll(result);
-    //     caja.getTotal();
-    //   }
-    //   else {
-    //     caja.addItem(selectedProducts[index]);
-    //     Fluttertoast.showToast(msg: 'Producto agregado_3');
-    //   }
-    //}
   }
 }

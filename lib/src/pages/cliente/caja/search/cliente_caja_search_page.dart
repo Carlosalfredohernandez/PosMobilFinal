@@ -87,7 +87,7 @@ IconButton(
           title: Text("${_filter[index].nombreProducto}\n${_filter[index].codigoBarra}"),
           subtitle: Text('Precio: ${_filter[index].precioVenta.toString()}'),
           leading: Icon(Icons.category),
-          onTap: () => controlador.addToBag(_filter[index]),
+          onTap: () => close(context, _filter[index]),
         );
       },
     );

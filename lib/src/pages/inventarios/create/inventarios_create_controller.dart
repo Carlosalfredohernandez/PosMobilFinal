@@ -22,7 +22,7 @@ class InventariosCreateController extends GetxController {
   TextEditingController numController = TextEditingController();
   var numero = 0.obs;
   ProductosProvider productosProvider = ProductosProvider();
-  List<Producto> selectedProducts = <Producto>[].obs;
+  var selectedProducts = <Producto>[].obs;
   DateTime currentSelectedDate = DateTime.now();
   DateTime fecha = DateTime.now();
   LocalProvider localProvider = LocalProvider();
@@ -50,16 +50,16 @@ class InventariosCreateController extends GetxController {
     pago.value = int.parse(text);
   }
 
-  void getTotal() {
+  /*void getTotal() {
     total.value = 0;
     for (var product in selectedProducts) {
       total.value = total.value + (product.cantidad! * int.parse('${product.precioVenta}'));
     }
   }
-
+*/
   void deleteItem(Producto product) {
     selectedProducts.remove(product);
-    getTotal();
+    //getTotal();
     product.cantidad = 0;
   }
 
@@ -68,7 +68,7 @@ class InventariosCreateController extends GetxController {
     selectedProducts.remove(product);
     product.cantidad = product.cantidad! + 1;
     selectedProducts.insert(index, product);
-    getTotal();
+    //getTotal();
   }
 
   void getCantidad(Producto product, String texto) {
@@ -145,7 +145,7 @@ class InventariosCreateController extends GetxController {
         product.cantidad = 0;
       }
       selectedProducts.add(product);
-      getTotal();
+      //getTotal();
     } else {
       addItem(selectedProducts[index]);
     }
@@ -193,6 +193,29 @@ Future<void> code() async {
     Get.snackbar('Error', 'Producto no encontrado');
   }
 }
+// ...existing code...
 
+  /// Busca el producto por código de barras en la lista de productos cargados
+  Future<Producto?> getProductByCodigoBarra(String codigo) async {
+    try {
+      return productos.firstWhere((p) => p.codigoBarra == codigo);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Agrega el producto a la lista seleccionada o suma cantidad si ya existe
+  void addOrUpdateSelectedProduct(Producto producto) {
+  // Si ya existe, actualiza la cantidad; si no, lo agrega
+  final index = selectedProducts.indexWhere((p) => p.nombreProducto == producto.nombreProducto);
+  if (index == -1) {
+    selectedProducts.add(producto);
+  } else {
+    selectedProducts[index].cantidad = producto.cantidad;
+  }
+  selectedProducts.refresh();
+}
+
+// ...existing code...
 // ...existing code...
 }

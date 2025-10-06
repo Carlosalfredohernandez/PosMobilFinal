@@ -51,6 +51,7 @@ class InventarioSearchPage extends SearchDelegate<Producto> {
       return element.nombreProducto!.toLowerCase().contains(query.trim().toLowerCase())
           || element.codigoBarra!.toLowerCase().contains(query.trim().toLowerCase());
     }).toList();
+    // ...código existente...
     return ListView.builder(
       itemCount: _filter.length,
       itemBuilder: (_, index) {
@@ -58,9 +59,10 @@ class InventarioSearchPage extends SearchDelegate<Producto> {
           title: Text(_filter[index].nombreProducto.toString() + "\n" + _filter[index].codigoBarra.toString()),
           subtitle: Text('Precio: ${_filter[index].precioVenta.toString()}'),
           leading: Icon(Icons.category),
-          onTap: () => controlador.addToBag(_filter[index]),
+          onTap: () => close(context, _filter[index]), // <-- Solo retorna el producto seleccionado
         );
       },
     );
+// ...código existente...
   }
 }
