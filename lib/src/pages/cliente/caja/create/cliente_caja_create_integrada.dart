@@ -939,8 +939,19 @@ int _calcularVuelto() {
 
   Widget _iconSearch(BuildContext context) {
     return IconButton(
-      onPressed: () {
-        showSearch(context: context, delegate: ClienteCajaSearchPage(controlador.productos));
+      onPressed: () async {
+        final Producto? productoSeleccionado = await showSearch(
+          context: context, 
+          delegate: ClienteCajaSearchPage(controlador.productos)
+        );
+        
+        if (productoSeleccionado != null && productoSeleccionado.id != null) {
+          // Agregar el producto seleccionado al carrito
+          controlador.addItem(productoSeleccionado);
+          controlador.update();
+          setState(() {});
+          print('✅ Producto agregado desde search: ${productoSeleccionado.nombreProducto}');
+        }
       },
       icon: const Icon(
         Icons.search,
