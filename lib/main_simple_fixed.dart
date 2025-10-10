@@ -7,7 +7,6 @@ import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_integ
 import 'package:posmobil/src/pages/login/login_page.dart';
 import 'package:posmobil/src/pages/login/login_controller.dart';
 import 'package:posmobil/src/pages/menu_inicio/menu_inicio_page.dart';
-import 'package:posmobil/src/pages/menu_inicio/menu_inicio_page_backup.dart' as MenuBackup;
 import 'package:posmobil/src/pages/menugeneral/menu_general_page.dart';
 
 // VERSION SIMPLE Y ESTABLE - SIN MULTIEMPRESAS
@@ -73,13 +72,6 @@ class _MyAppState extends State<MyApp> {
         GetPage(
           name: '/inicio/cliente',
           page: () => MenuInicioPage(),
-          transition: Transition.fadeIn,
-        ),
-
-        // PANTALLA BACKUP - AUTENTICACION USUARIO EMPRESA (CON LOGICA DE ROLES)
-        GetPage(
-          name: '/menu_inicio_backup',
-          page: () => MenuBackup.MenuInicioPage(),
           transition: Transition.fadeIn,
         ),
 

@@ -33,16 +33,16 @@ class MenuInicioPage extends StatelessWidget {
               child: const Icon(Icons.storefront, size: 24),
             ),
             const SizedBox(width: 12),
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'POS Sistema',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'Panel Principal',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -72,7 +72,7 @@ class MenuInicioPage extends StatelessWidget {
                     ),
                     Text(
                       nombreRol,
-                      style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.9)),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
                 ),

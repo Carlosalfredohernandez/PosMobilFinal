@@ -1,0 +1,11 @@
+﻿{
+  "dart.showDeviceName": true,
+  "dart.showInspectorNotificationsForWidgetErrors": true,
+  "dart.debugExternalPackageLibraries": false,
+  "dart.debugSdkLibraries": false,
+  "dart.flutterHotReloadOnSave": "allIfDirty",
+  "dart.flutterShowWebServerDevice": true,
+  "dart.showTodos": true,
+  "dart.previewFlutterUiGuides": true,
+  "dart.showMainCodeLens": true
+}

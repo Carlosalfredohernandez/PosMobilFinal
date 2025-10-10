@@ -8,13 +8,13 @@ import 'package:posmobil/src/providers/usuarios_provider.dart';
 class LoginController extends GetxController {
   
   TextEditingController rutController = TextEditingController();
-  TextEditingController claveController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
   
   UsuariosProvider usuariosProvider = UsuariosProvider();
 
   void login() async {
     String rut = rutController.text.trim();
-    String password = claveController.text.trim();
+    String password = passwordController.text.trim();
     
     print('🔐 Intentando login: $rut');
     
@@ -59,9 +59,14 @@ class LoginController extends GetxController {
         if (sesionUsuario.tipoContrato == 'NO') {
           Get.snackbar('Usuario no autorizado', 'Contacta al administrador');
         } else {
-          // Navegar a la pantalla de autenticación de empresa/usuario
-          print('🏢 Navegando a autenticación de empresa...');
-          irAPantallaEmpresa();
+          // Navegar según el rol
+          if (rolUsuario == 3) {
+            print('🛒 Navegando a menú de cajero...');
+            irAHomePageCajero();
+          } else {
+            print('🔑 Navegando a menú completo...');
+            irAHomePage();
+          }
         }
       } else {
         print('❌ Login fallido: ${responseApi.message}');
@@ -71,18 +76,13 @@ class LoginController extends GetxController {
   }
 
   void irAHomePage(){
-    print('🏠 Navegando a /menu_inicio');
-    Get.offNamedUntil('/menu_inicio', (route) => false);
+    print('🏠 Navegando a /inicio/cliente');
+    Get.offNamedUntil('/inicio/cliente', (route) => false);
   }
   
   void irAHomePageCajero(){
-    print('🛒 Navegando a /menu_inicio (modo cajero)');
-    Get.offNamedUntil('/menu_inicio', (route) => false);
-  }
-
-  void irAPantallaEmpresa(){
-    print('🏢 Navegando a /menu_inicio_backup (pantalla con lógica de roles usuario empresa)');
-    Get.offNamedUntil('/menu_inicio_backup', (route) => false);
+    print('🛒 Navegando a /inicio/cliente (modo cajero)');
+    Get.offNamedUntil('/inicio/cliente', (route) => false);
   }
 
   bool isValidForm(String rut, String password) {

@@ -9,7 +9,20 @@ import '../models/usuario.dart';
 class UsuariosProvider extends GetConnect{
 
   String url = '${Environment.API_URL}api/usuarios';
-  Usuario userSession = Usuario.fromJson(GetStorage().read('usuario') ?? {});
+  
+  // ✅ CORREGIDO: No inicializar Usuario al crear el provider
+  Usuario? get userSession {
+    try {
+      final userData = GetStorage().read('usuario');
+      if (userData != null) {
+        return Usuario.fromJson(Map<String, dynamic>.from(userData));
+      }
+      return null;
+    } catch (e) {
+      print('⚠️ Error al obtener usuario de sesión: $e');
+      return null;
+    }
+  }
 
   Future<ResponseApi> create(Usuario usuario, var rol) async{
 
@@ -52,7 +65,7 @@ class UsuariosProvider extends GetConnect{
         user.toJson(),
         headers: {
           'Content-Type': 'application/json',
-          //'Authorization': userSession.sessionToken!
+          //'Authorization': userSession?.sessionToken
         }
     );
     if (response.body == null) {
@@ -74,7 +87,7 @@ class UsuariosProvider extends GetConnect{
         '$url/updateRol/$idUser/$idRol',
         headers: {
           'Content-Type': 'application/json',
-          //'Authorization': userSession.sessionToken!
+          //'Authorization': userSession?.sessionToken
         }
     );
     if (response.body == null) {
@@ -93,7 +106,12 @@ class UsuariosProvider extends GetConnect{
 
 
   Future<List<Usuario>> findUsers() async {
-    var id = userSession.id;
+    var id = userSession?.id;
+    if (id == null) {
+      Get.snackbar('Error', 'No hay sesión de usuario activa');
+      return [];
+    }
+    
     Response response = await get(
         '$url/findUsers/$id',
         headers: {

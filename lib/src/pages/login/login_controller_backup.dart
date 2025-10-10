@@ -81,8 +81,8 @@ class LoginController extends GetxController {
   }
 
   void irAPantallaEmpresa(){
-    print('🏢 Navegando a /menu_inicio_backup (pantalla con lógica de roles usuario empresa)');
-    Get.offNamedUntil('/menu_inicio_backup', (route) => false);
+    print('🏢 Navegando a /empresa_auth');
+    Get.offNamedUntil('/empresa_auth', (route) => false);
   }
 
   bool isValidForm(String rut, String password) {
