@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/usuario.dart';
-//import 'package:posmobil/src/pages/configuraciones/impresoras.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+//import 'package:posmobilfinal/src/pages/configuraciones/impresoras.dart';
 
 class NavBar extends StatefulWidget {
   const NavBar({super.key});
@@ -51,6 +51,11 @@ class _NavBarState extends State<NavBar> {
             leading: Icon(Icons.add_circle),
             title: Text('Informe General'),
             onTap: () => Get.toNamed('/informes/ventas'),
+          ),
+          ListTile(
+            leading: Icon(Icons.people_alt_rounded),
+            title: Text('Usuarios Empresa'),
+            onTap: () => Get.toNamed('/usuarios_empresa'),
           ),
           ListTile(
             leading: Icon(Icons.exit_to_app),

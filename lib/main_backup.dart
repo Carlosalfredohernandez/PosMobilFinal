@@ -2,37 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_integrada.dart';
-import 'package:posmobil/src/pages/cliente/perfil/mantenedorlistadorusuarios/mantenedor_listar_usuarios_page.dart';
-import 'package:posmobil/src/pages/configuraciones/impresora.dart';
-import 'package:posmobil/src/pages/informes/estadisticas/estadisticas_ventas_page.dart';
-import 'package:posmobil/src/pages/login/login_page.dart';
-import 'package:posmobil/src/pages/agregar/agregar_page.dart';
-import 'package:posmobil/src/pages/cliente/categorias/crear/cliente_categorias_crear_page.dart';
-import 'package:posmobil/src/pages/cliente/perfil/editar/cliente_perfil_editar_page.dart';
-import 'package:posmobil/src/pages/cliente/productos/crear/cliente_productos_lista_crear_page.dart';
-import 'package:posmobil/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
-import 'package:posmobil/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
-import 'package:posmobil/src/pages/informes/ventas/informes_ventas_page.dart';
-import 'package:posmobil/src/pages/inventarios/create/inventarios_create_page.dart';
-import 'package:posmobil/src/pages/inventarios/informes/inventarios_informes_page.dart';
-import 'package:posmobil/src/pages/inventarios/menu/inventarios_menu_page.dart';
-import 'package:posmobil/src/pages/inventarios/vista/inventarios_vista_page.dart';
-import 'package:posmobil/src/pages/home/home_page.dart';
-import 'package:posmobil/src/pages/mantenedores/bodega/mantenedores_bodega_page.dart';
-import 'package:posmobil/src/pages/mantenedores/local/mantenedores_local_page.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/busqueda/mantenedores_maestros_page.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_page.dart';
-import 'package:posmobil/src/pages/mantenedores/menu/mantenedores_menu_page.dart';
-import 'package:posmobil/src/pages/mantenedores/proveedores/crear/crear/mantenedores_proveedores_page.dart';
-import 'package:posmobil/src/pages/mantenedores/productos/mantenedores_productos_page.dart';
-import 'package:posmobil/src/pages/menu_inicio/menu_inicio_cajero_page.dart';
-import 'package:posmobil/src/pages/menu_inicio/menu_inicio_page.dart';
-import 'package:posmobil/src/pages/menugeneral/menu_general_page.dart';
-import 'package:posmobil/src/pages/registro/registro_page.dart';
-//import 'package:posmobil/src/services/bluetooth_printer_service.dart';
-import 'package:posmobil/src/pages/registro/registro_page.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/pages/cliente/caja/create/cliente_caja_create_integrada.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/mantenedorlistadorusuarios/mantenedor_listar_usuarios_page.dart';
+import 'package:posmobilfinal/src/pages/configuraciones/impresora.dart';
+import 'package:posmobilfinal/src/pages/informes/estadisticas/estadisticas_ventas_page.dart';
+import 'package:posmobilfinal/src/pages/login/login_page.dart';
+import 'package:posmobilfinal/src/pages/agregar/agregar_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/categorias/crear/cliente_categorias_crear_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/editar/cliente_perfil_editar_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/productos/crear/cliente_productos_lista_crear_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
+import 'package:posmobilfinal/src/pages/informes/ventas/informes_ventas_page.dart';
+import 'package:posmobilfinal/src/pages/inventarios/create/inventarios_create_page.dart';
+import 'package:posmobilfinal/src/pages/inventarios/informes/inventarios_informes_page.dart';
+import 'package:posmobilfinal/src/pages/inventarios/menu/inventarios_menu_page.dart';
+import 'package:posmobilfinal/src/pages/inventarios/vista/inventarios_vista_page.dart';
+import 'package:posmobilfinal/src/pages/home/home_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/bodega/mantenedores_bodega_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/local/mantenedores_local_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/busqueda/mantenedores_maestros_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/menu/mantenedores_menu_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/proveedores/crear/crear/mantenedores_proveedores_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/productos/mantenedores_productos_page.dart';
+//import 'package:posmobilfinal/src/pages/menu_inicio/menu_inicio_cajero_page.dart';
+//import 'package:posmobilfinal/src/pages/menu_inicio/menu_inicio_page.dart';
+import 'package:posmobilfinal/src/pages/menugeneral/menu_general_page.dart';
+import 'package:posmobilfinal/src/pages/registro/registro_page.dart';
+//import 'package:posmobilfinal/src/services/bluetooth_printer_service.dart';
+import 'package:posmobilfinal/src/pages/registro/registro_page.dart';
 
 //import 'src/pages/configuraciones/impresoras.dart';
 
@@ -96,9 +96,9 @@ class _MyAppState extends State<MyApp> {
         // ...otras rutas reales...
         GetPage(name: '/', page: () => const LoginPage()),
         GetPage(name: '/registro', page: () => const RegistroPage()),
-        GetPage(name: '/inicio/cliente', page: () => const MenuInicioPage()),
+        //GetPage(name: '/inicio/cliente', page: () => const MenuInicioPage()),
         GetPage(name: '/inicio/cliente/caja/create', page: () => ClienteCajaCreatePageIntegrada()),
-        GetPage(name: '/inicio/cajero', page: () => const MenuInicioCajeroPage()),
+        //GetPage(name: '/inicio/cajero', page: () => const MenuInicioCajeroPage()),
         GetPage(name: '/inicio/cliente/agregar/categoria', page: () => ClienteCategoriasCrearPage()),
         GetPage(name: '/inicio/cliente/mantenedorlistadorusuarios', page: () => MantenedorListarUsuariosPage()),
         GetPage(name: '/inicio/cliente/productos/crear', page: () => ClienteProductosListaCrearPage()),

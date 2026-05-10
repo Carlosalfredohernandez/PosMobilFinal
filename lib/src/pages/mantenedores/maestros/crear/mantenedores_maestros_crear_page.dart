@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/crear/mantenedores_maestros_crear_controlador.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/crear/mantenedores_maestros_crear_controlador.dart';
 
 class MantenedoresMaestrosCrearPage extends StatelessWidget {
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/pages/cliente/caja/search/cliente_caja_search_page.dart';
-import 'package:posmobil/src/pages/mantenedores/bodega/mantenedores_bodega_controlador.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/pages/cliente/caja/search/cliente_caja_search_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/bodega/mantenedores_bodega_controlador.dart';
 
 class MantenedoresBodegaPage extends StatefulWidget {
   const MantenedoresBodegaPage({super.key});

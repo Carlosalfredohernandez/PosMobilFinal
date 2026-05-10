@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/environment/environment.dart';
-import 'package:posmobil/src/models/boleta.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
+import 'package:posmobilfinal/src/environment/environment.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
 
 class BoletasProvider extends GetConnect {
   String url = '${Environment.API_URL}api/boletas';

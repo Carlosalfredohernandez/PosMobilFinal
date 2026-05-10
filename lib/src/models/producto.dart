@@ -5,6 +5,10 @@ Producto productoFromJson(String str) => Producto.fromJson(json.decode(str));
 String productoToJson(Producto data) => json.encode(data.toJson());
 
 class Producto {
+  @override
+  String toString() {
+    return 'Producto{id: \\${id ?? ''}, nombre: \\${nombreProducto ?? ''}, categoria: \\${categoria ?? ''}, precioVenta: \\${precioVenta ?? ''}}';
+  }
 
   String? id;
   String? usuario;
@@ -16,6 +20,7 @@ class Producto {
   String? precioVenta;
   String? proveedor;
   int? cantidad;
+  String? imagenUrl;
 
   Producto({
     this.id,
@@ -28,8 +33,9 @@ class Producto {
     this.precioVenta,
     this.proveedor,
     this.cantidad,
+    this.imagenUrl,
   });
-Producto copyWith({
+  Producto copyWith({
     String? id,
     String? codigoBarra,
     String? nombreProducto,
@@ -37,6 +43,7 @@ Producto copyWith({
     String? precioVenta,
     String? categoria,
     int? cantidad,
+    String? imagenUrl,
   }) {
     return Producto(
       id: id ?? this.id,
@@ -46,6 +53,7 @@ Producto copyWith({
       precioVenta: precioVenta ?? this.precioVenta,
       categoria: categoria ?? this.categoria,
       cantidad: cantidad ?? this.cantidad,
+      imagenUrl: imagenUrl ?? this.imagenUrl,
     );
   }
 
@@ -54,6 +62,7 @@ Producto copyWith({
   factory Producto.fromJson(Map<String, dynamic> json) => Producto(
     id: json["id"],
     usuario: json["usuario"],
+    imagenUrl: json["imagen_url"], // Cambiado a snake_case para recibir del backend
     categoria: json["categoria"],
     nombreProducto: json["nombre_producto"],
     descripcionProducto: json["descripcion_producto"],
@@ -87,5 +96,6 @@ Producto copyWith({
     "precio_venta": precioVenta,
     "proveedor": proveedor,
     "cantidad": cantidad,
+    "imagen_url": imagenUrl,
   };
 }

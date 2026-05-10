@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/models/proveedores.dart';
-import 'package:posmobil/src/pages/inventarios/create/inventarios_create_controller.dart';
-import 'package:posmobil/src/pages/inventarios/search/inventario_search_page.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/proveedores.dart';
+import 'package:posmobilfinal/src/pages/inventarios/create/inventarios_create_controller.dart';
+import 'package:posmobilfinal/src/pages/inventarios/search/inventario_search_page.dart';
 
 class InventarioCreatePage extends StatefulWidget {
   const InventarioCreatePage({super.key});
@@ -83,6 +83,10 @@ class _InventarioCreatePageState extends State<InventarioCreatePage> {
     final productoSimple = Producto(
       nombreProducto: productoSeleccionado!.nombreProducto,
       cantidad: cantidad,
+      codigoBarra: productoSeleccionado!.codigoBarra,
+      id: productoSeleccionado!.id,
+      precioVenta: productoSeleccionado!.precioVenta,
+      // Puedes agregar aquí otros campos si el backend los requiere
     );
     controlador.addOrUpdateSelectedProduct(productoSimple);
     setState(() {
@@ -94,29 +98,22 @@ class _InventarioCreatePageState extends State<InventarioCreatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: Container(
-        color: const Color.fromRGBO(245, 245, 245, 1),
-        height: MediaQuery.of(context).size.height * 0.1,
-        child:_totalToPay(context),
-      ),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: AppBar(
-          flexibleSpace: Container(
-            alignment: Alignment.center,
-            height: MediaQuery.of(context).size.height * 0.2,
-            child: SafeArea(
-              child: Wrap(
-                direction: Axis.horizontal,
-                children: [
-                  _campoCodigoBarra(),
-                  _iconSearch(context),
-                  _iconScan()
-                ],
-              ),
-            ),
-          ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8.0, top: 4.0),
+          child: _totalToPay(context),
         ),
+      ),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Expanded(child: _campoCodigoBarra()),
+            _iconSearch(context),
+          ],
+        ),
+        actions: [
+          _iconScan(),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -195,9 +192,11 @@ class _InventarioCreatePageState extends State<InventarioCreatePage> {
 
   Widget _totalToPay(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Divider(height: 1, color: Colors.grey[300]),
+        const SizedBox(height: 10),
         Container(
           alignment: Alignment.center,
           child: Row(
@@ -206,7 +205,12 @@ class _InventarioCreatePageState extends State<InventarioCreatePage> {
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 30),
                 child: ElevatedButton(
-                    onPressed: () => controlador.createInventario(),
+                    onPressed: () => controlador.createInventario(onSuccess: () {
+                      setState(() {
+                        productoSeleccionado = null;
+                        cantidadController.text = '1';
+                      });
+                    }),
                     style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.all(15)
                     ),
@@ -229,11 +233,13 @@ class _InventarioCreatePageState extends State<InventarioCreatePage> {
     return Container(
       margin: const EdgeInsets.only(left: 5, right: 5),
       child: IconButton(
-          onPressed: () => controlador.scanBarcodeNormal(context),
-          icon: const Icon(
-            Icons.qr_code_scanner,
-            color: Colors.black,
-          )
+        onPressed: () => controlador.scanBarcodeNormal(context, onProductAdded: () {
+          setState(() {});
+        }),
+        icon: const Icon(
+          Icons.qr_code_scanner,
+          color: Colors.black,
+        ),
       ),
     );
   }

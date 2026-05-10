@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/boleta.dart';
-import 'package:posmobil/src/pages/informes/detalle_venta/informes_detalle_venta_page.dart';
-import 'package:posmobil/src/pages/informes/ventas/informes_ventas_controller.dart';
-import 'package:posmobil/src/pages/informes/pdf/pdf_export_page.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/pages/informes/detalle_venta/informes_detalle_venta_page.dart';
+import 'package:posmobilfinal/src/pages/informes/ventas/informes_ventas_controller.dart';
+import 'package:posmobilfinal/src/pages/informes/pdf/pdf_export_page.dart';
 
 class InformesVentasPage extends StatefulWidget {
   const InformesVentasPage({super.key});
@@ -132,7 +132,38 @@ class _InformesVentasPageState extends State<InformesVentasPage> {
                                       ],
                                     )
                                   ],
-                                  content: InformesDetalleVentaPage(boleta: boleta),
+                                  content: SizedBox(
+                                    width: 400,
+                                    child: boleta.detalle == null || boleta.detalle!.isEmpty
+                                        ? const Text('Sin productos en esta venta')
+                                        : Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Row(
+                                                children: const [
+                                                  Expanded(child: Text('Producto', style: TextStyle(fontWeight: FontWeight.bold))),
+                                                  SizedBox(width: 8),
+                                                  Text('Cant.', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                  SizedBox(width: 8),
+                                                  Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                ],
+                                              ),
+                                              Divider(),
+                                              ...boleta.detalle!.map((detalle) => Padding(
+                                                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                                    child: Row(
+                                                      children: [
+                                                        Expanded(child: Text(detalle.nombreProducto ?? '')),
+                                                        SizedBox(width: 8),
+                                                        Text(detalle.cantidad ?? ''),
+                                                        SizedBox(width: 8),
+                                                        Text(detalle.totalLinea?.toString() ?? ''),
+                                                      ],
+                                                    ),
+                                                  ))
+                                            ],
+                                          ),
+                                  ),
                                 ),
                               );
                             },

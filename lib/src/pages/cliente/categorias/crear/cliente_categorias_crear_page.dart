@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/categoria.dart';
+import 'package:posmobilfinal/src/models/categoria.dart';
 import 'cliente_categorias_crear_controller.dart';
 
 class ClienteCategoriasCrearPage extends StatelessWidget {
@@ -13,16 +13,113 @@ class ClienteCategoriasCrearPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() => Scaffold(
-      bottomNavigationBar: SizedBox(
-          height: 80,
-          child: _botonCancelar()
-      ),
-      body: Stack( // POSICIONAR ELEMENTOS UNO ENCIMA DEL OTRO
-        children: [
-          _backgroundCover(context),
-          _boxForm(context),
-          _textNewCategory(context)
-        ],
+      backgroundColor: const Color(0xFFF5F6FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.blueAccent, Colors.lightBlueAccent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blueAccent.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+              ),
+              child: const Text(
+                'MANTENCIÓN DE CATEGORÍAS',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 26,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Formulario
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Nueva Categoría',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: Colors.blueAccent,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          _dropDownCategories(controlador.categorias),
+                          const SizedBox(height: 16),
+                          _textFieldName(),
+                          const SizedBox(height: 32),
+                          ElevatedButton(
+                            onPressed: () => controlador.createCategory(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: const Text(
+                              'GRABAR',
+                              style: TextStyle(fontSize: 16, color: Colors.white),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton(
+                            onPressed: () => Get.back(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(color: Colors.blueAccent),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              'CANCELAR',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     ));
   }
@@ -32,13 +129,34 @@ class ClienteCategoriasCrearPage extends StatelessWidget {
       width: double.infinity,
       height: MediaQuery.of(context).size.height * 0.35,
       color: Colors.blueAccent,
+      child: Center(
+        child: FractionallySizedBox(
+          widthFactor: 0.95,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: const [
+              Text(
+                'MANTENCION DE CATEGORIAS',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _boxForm(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.45,
-      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.3, left: 50, right: 50),
+      height: MediaQuery.of(context).size.height * 0.42,
+      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.18, left: 40, right: 40),
       decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: <BoxShadow>[
@@ -49,15 +167,24 @@ class ClienteCategoriasCrearPage extends StatelessWidget {
             )
           ]
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            _textYourInfo(),
-            _textFieldName(),
-            _buttonCreate(context),
-            _dropDownCategories(controlador.categorias)
-          ],
-        ),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _textYourInfo(),
+                  _dropDownCategories(controlador.categorias),
+                  _textFieldName(),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 18.0),
+            child: _buttonCreate(context),
+          ),
+        ],
       ),
     );
   }
@@ -65,14 +192,18 @@ class ClienteCategoriasCrearPage extends StatelessWidget {
 
 
   Widget _textFieldName() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 40),
-      child: TextField(
-        controller: controlador.nombreController,
-        keyboardType: TextInputType.text,
-        decoration: InputDecoration(
-            hintText: 'Nombre',
-            prefixIcon: Icon(Icons.category)
+    return TextField(
+      controller: controlador.nombreController,
+      keyboardType: TextInputType.text,
+      decoration: InputDecoration(
+        hintText: 'Nombre de la nueva categoría',
+        prefixIcon: const Icon(Icons.category, color: Colors.blueAccent),
+        filled: true,
+        fillColor: Color(0xFFF0F4FA),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
       ),
     );
@@ -143,23 +274,12 @@ class ClienteCategoriasCrearPage extends StatelessWidget {
   }
 
   Widget _textNewCategory(BuildContext context) {
-
+    // Achicar el área y el ícono, eliminar texto para evitar superposición
     return SafeArea(
       child: Container(
-        margin: EdgeInsets.only(top: 15),
+        margin: EdgeInsets.only(top: 10),
         alignment: Alignment.topCenter,
-        child: Column(
-          children: [
-            Icon(Icons.category, size: 100),
-            Text(
-              'NUEVA CATEGORIA',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 23
-              ),
-            ),
-          ],
-        ),
+        child: Icon(Icons.category, size: 50, color: Colors.blueAccent),
       ),
     );
   }
@@ -177,14 +297,15 @@ class ClienteCategoriasCrearPage extends StatelessWidget {
   }
 
   Widget _botonCancelar(){
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-      child: ElevatedButton(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: ElevatedButton(
           onPressed: () => Get.back(),
-          child: const Text(
-              'CANCELAR'
-          )
+          child: const Text('CANCELAR'),
+        ),
       ),
     );
   }

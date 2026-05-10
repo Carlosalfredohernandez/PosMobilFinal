@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/pages/mantenedores/menu/mantenedores_menu_controller.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/menu/mantenedores_menu_controller.dart';
 
 class MantenedoresMenuPage extends StatelessWidget {
   MantenedoresMenuController controlador = Get.put(MantenedoresMenuController());

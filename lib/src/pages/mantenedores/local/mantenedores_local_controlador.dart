@@ -3,13 +3,13 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:posmobil/src/models/boleta.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/pages/bluetooth/bluetooth_printer.dart';
-import 'package:posmobil/src/providers/boletas_provider.dart';
-import 'package:posmobil/src/providers/productos_provider.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/pages/bluetooth/bluetooth_printer.dart';
+import 'package:posmobilfinal/src/providers/boletas_provider.dart';
+import 'package:posmobilfinal/src/providers/productos_provider.dart';
 
 class MantenedoresLocalControlador extends GetxController {
   List<Producto> productos = <Producto>[];
@@ -76,7 +76,7 @@ class MantenedoresLocalControlador extends GetxController {
       localUsuario: sesionUsuario.localOficina ?? 'Santiago',
       valor: '${total.value}',
       formaPago: formaPago,
-      productos: selectedProducts,
+      productos: selectedProducts.map((p) => p.toJson()).toList(),
     );
     ResponseApi responseApi = await boletasProvider.create(boleta);
     Fluttertoast.showToast(msg: responseApi.message ?? '', toastLength: Toast.LENGTH_SHORT);

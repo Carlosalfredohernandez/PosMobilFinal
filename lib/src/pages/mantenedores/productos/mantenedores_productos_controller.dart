@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/categoria.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
-import 'package:posmobil/src/providers/categorias_provider.dart';
-import 'package:posmobil/src/providers/productos_provider.dart';
+import 'package:posmobilfinal/src/models/categoria.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
+import 'package:posmobilfinal/src/providers/categorias_provider.dart';
+import 'package:posmobilfinal/src/providers/productos_provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class MantenedoresProductosController extends GetxController {

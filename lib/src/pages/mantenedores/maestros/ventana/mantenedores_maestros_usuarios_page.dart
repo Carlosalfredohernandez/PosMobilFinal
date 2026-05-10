@@ -1,27 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_controller.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_controller.dart';
 
 class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
   final Usuario? usuario;
   late final MantenedoresMaestrosUsuariosController controlador;
 
-  MantenedoresMaestrosUsuariosPage({super.key, required this.usuario}) {
-    if (usuario == null) {
-      throw Exception('El usuario no puede ser nulo');
-    }
-    controlador = Get.put(MantenedoresMaestrosUsuariosController(usuario!));
-  }
+  MantenedoresMaestrosUsuariosPage({super.key, required this.usuario})
+      : controlador = Get.put(MantenedoresMaestrosUsuariosController(usuario));
 
   @override
   Widget build(BuildContext context) {
     return Obx(() => Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'USUARIO ELEGIDO',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          usuario == null ? 'CREAR USUARIO' : 'USUARIO ELEGIDO',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -31,7 +27,6 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
           _cajaFormulario(context)
         ],
       ),
-      bottomNavigationBar: _buttonActualizar(context),
     ));
   }
 
@@ -45,11 +40,10 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
 
   Widget _cajaFormulario(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
       margin: EdgeInsets.only(
         top: MediaQuery.of(context).size.height * 0.03,
-        left: 50,
-        right: 50,
+        left: 10,
+        right: 10,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -63,42 +57,66 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _textName(),
-            _textEmail(),
+            _campoTextoNombre(),
+            _campoTextoEmail(),
+            _campoTextoRut(),
             _campoTextoTelefono(),
             _campoTextoCalle(),
             _campoTextoNumero(),
             _campoTextoComuna(),
             _campoTextoRegion(),
-            _dropDownLocales(controlador.locales),
             _dropDownRoles(controlador.roles),
             _campoTextoClave(),
             _campoTextoConfirmarClave(),
+            const SizedBox(height: 24),
+            _buttonActualizar(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _textName() {
+
+  Widget _campoTextoNombre() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: ListTile(
-        leading: const Icon(Icons.person),
-        subtitle: const Text('Nombre'),
-        title: Text(usuario!.nombre ?? ''),
+      child: TextField(
+        controller: controlador.nombreController,
+        keyboardType: TextInputType.text,
+        decoration: const InputDecoration(
+          hintText: 'Nombre Empresa',
+          prefixIcon: Icon(Icons.person),
+        ),
       ),
     );
   }
 
-  Widget _textEmail() {
+  Widget _campoTextoEmail() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: ListTile(
-        leading: const Icon(Icons.email_outlined),
-        subtitle: const Text('Email'),
-        title: Text(usuario!.email ?? ''),
+      child: TextField(
+        controller: controlador.emailController,
+        keyboardType: TextInputType.emailAddress,
+        decoration: const InputDecoration(
+          hintText: 'Email',
+          prefixIcon: Icon(Icons.email_outlined),
+        ),
+      ),
+    );
+  }
+
+  Widget _campoTextoRut() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: TextField(
+        controller: controlador.rutController,
+        keyboardType: TextInputType.text,
+        decoration: const InputDecoration(
+          hintText: 'RUT',
+          prefixIcon: Icon(Icons.badge),
+        ),
       ),
     );
   }
@@ -107,7 +125,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
-        controller: controlador.telefonoController,
+        controller: controlador?.telefonoController,
         keyboardType: TextInputType.text,
         decoration: const InputDecoration(
           hintText: 'Telefono',
@@ -121,7 +139,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
-        controller: controlador.regionController,
+        controller: controlador?.regionController,
         keyboardType: TextInputType.text,
         decoration: const InputDecoration(
           hintText: 'Region',
@@ -135,7 +153,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
-        controller: controlador.calleController,
+        controller: controlador?.calleController,
         keyboardType: TextInputType.text,
         decoration: const InputDecoration(
           hintText: 'Calle',
@@ -149,10 +167,10 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
-        controller: controlador.numeroController,
+        controller: controlador?.numeroController,
         keyboardType: TextInputType.text,
         decoration: const InputDecoration(
-          hintText: 'Numero de Hogar',
+          hintText: 'Numero',
           prefixIcon: Icon(Icons.add),
         ),
       ),
@@ -163,7 +181,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
-        controller: controlador.comunaController,
+        controller: controlador?.comunaController,
         keyboardType: TextInputType.text,
         decoration: const InputDecoration(
           hintText: 'Comuna',
@@ -177,7 +195,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
-        controller: controlador.claveController,
+        controller: controlador?.claveController,
         keyboardType: TextInputType.text,
         obscureText: true,
         decoration: const InputDecoration(
@@ -192,7 +210,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
-        controller: controlador.confirmarClaveController,
+        controller: controlador?.confirmarClaveController,
         keyboardType: TextInputType.text,
         obscureText: true,
         decoration: const InputDecoration(
@@ -222,9 +240,9 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
           style: TextStyle(fontSize: 15),
         ),
         items: _dropDownItems(locales),
-        value: controlador.nombrelocal.value == '' ? null : controlador.nombrelocal.value,
+        value: controlador?.nombrelocal.value == '' ? null : controlador?.nombrelocal.value,
         onChanged: (option) {
-          controlador.nombrelocal.value = option.toString();
+          if (controlador != null) controlador?.nombrelocal.value = option.toString();
         },
       ),
     );
@@ -257,10 +275,12 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
         isExpanded: true,
         hint: Text(usuario?.roles?[0].nombre ?? 'Elija el Rol', style: const TextStyle(fontSize: 15)),
         items: _dropDownRolItems(roles),
-        value: controlador.nombreRol.value == '' ? null : controlador.nombreRol.value,
+        value: controlador?.nombreRol.value == '' ? null : controlador?.nombreRol.value,
         onChanged: (option) {
-          controlador.rolId = option.toString() == '0' ? 2 : 3;
-          controlador.nombreRol.value = option.toString();
+          if (controlador != null) {
+            controlador?.rolId = option.toString() == '0' ? 2 : 3;
+            controlador?.nombreRol.value = option.toString();
+          }
         },
       ),
     );
@@ -282,7 +302,7 @@ class MantenedoresMaestrosUsuariosPage extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       child: ElevatedButton(
-        onPressed: () => controlador.actualizar(),
+        onPressed: () => controlador?.actualizar(),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 15),
           backgroundColor: Colors.blueAccent,

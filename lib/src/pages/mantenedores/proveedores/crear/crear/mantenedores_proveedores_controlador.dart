@@ -1,22 +1,35 @@
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/proveedores.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/providers/proveedor_provider.dart';
+import 'package:posmobilfinal/src/models/proveedores.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/providers/proveedor_provider.dart';
 
 class MantenedoresProveedoresControlador extends GetxController{
+    Future<void> eliminarProveedor(Proveedor proveedor) async {
+      if (proveedor.id == null) {
+        Get.snackbar('Error', 'Proveedor sin ID');
+        return;
+      }
+      ResponseApi responseApi = await proveedorProvider.deleteProveedor(proveedor.id!);
+      if (responseApi.success == true) {
+        Get.snackbar('Eliminación exitosa', responseApi.message ?? 'Proveedor eliminado');
+      } else {
+        Get.snackbar('Error al eliminar', responseApi.message ?? 'No se pudo eliminar el proveedor');
+      }
+    }
   TextEditingController nombreController = TextEditingController();
   TextEditingController telefonoController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController direccionController = TextEditingController();
   ProveedorProvider proveedorProvider = ProveedorProvider();
 
-  void crearProveedor() async {
+  Future<void> crearProveedor() async {
     String nombre = nombreController.text;
     String telefono = telefonoController.text;
     String direccion = direccionController.text;
     String email = emailController.text;
-    if (validador(nombre, telefono, direccion, email)){
+    if (validador(nombre, telefono, direccion, email)) {
       Proveedor proveedor = Proveedor(
         nombre: nombre,
         telefono: telefono,
@@ -25,13 +38,25 @@ class MantenedoresProveedoresControlador extends GetxController{
         contrato: 'SI',
       );
       ResponseApi responseApi = await proveedorProvider.create(proveedor);
-      if (responseApi.success == true ){
+      if (responseApi.success == true) {
         Get.snackbar('Proceso terminado', responseApi.message ?? '');
-      }
-      else {
+      } else {
         Get.snackbar('Registro fallido', responseApi.message ?? '');
       }
       Get.snackbar('Formulario valido', 'Vuelve a la pagina anterior');
+    }
+  }
+
+  Future<void> actualizarProveedor(Proveedor proveedor) async {
+    proveedor.nombre = nombreController.text;
+    proveedor.telefono = telefonoController.text;
+    proveedor.email = emailController.text;
+    proveedor.direccion = direccionController.text;
+    ResponseApi responseApi = await proveedorProvider.update(proveedor);
+    if (responseApi.success == true) {
+      Get.snackbar('Actualización exitosa', responseApi.message ?? '');
+    } else {
+      Get.snackbar('Error', responseApi.message ?? '');
     }
   }
 

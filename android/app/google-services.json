@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "614647540369",
+    "project_id": "totem-a8c86",
+    "storage_bucket": "totem-a8c86.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614647540369:android:0036da2e184ce5c0eb6d30",
+        "android_client_info": {
+          "package_name": "com.example.posmobil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_nQMZtdkKNrGzUF5Ww6gXWA3qVZh1fFs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

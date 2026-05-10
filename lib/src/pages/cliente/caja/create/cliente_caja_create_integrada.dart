@@ -1,60 +1,8 @@
-// pages/cliente/caja/create/cliente_caja_create_page_integrada.dart
-import 'dart:io';
-import 'dart:typed_data';
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:posmobil/src/models/boleta_sii.dart';
-import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
-import 'package:posmobil/src/pages/cliente/caja/search/cliente_caja_search_page.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/providers/categorias_provider.dart';
-import 'package:posmobil/src/services/pos_sii_service.dart';
-// Importar modelos y servicios locales
-
-import 'cliente_caja_create_controller.dart' hide CategoriasProvider;
-
-
-// ========== FUNCIONES AUXILIARES PARA TU MODELO PRODUCTO ==========
-
-/// Convertir tu modelo Producto al formato SII
-Map<String, dynamic> productoToSIIFormat(Producto producto) {
-  return {
-    'codigo': producto.codigoBarra ?? '',
-    'nombre': producto.nombreProducto ?? '',
-    'cantidad': producto.cantidad ?? 1,
-    'precio': int.tryParse(producto.precioVenta ?? '0') ?? 0,
-  };
-}
-
-/// Calcular subtotal de un producto
-int calcularSubtotalProducto(Producto producto) {
-  final precio = int.tryParse(producto.precioVenta ?? '0') ?? 0;
-  final cantidad = producto.cantidad ?? 1;
-  return precio * cantidad;
-}
-
-/// Validar si un producto es válido para SII
-bool esProductoValidoParaSII(Producto producto) {
-  return (producto.nombreProducto?.isNotEmpty ?? false) && 
-         (producto.precioVenta?.isNotEmpty ?? false) &&
-         (producto.cantidad != null && producto.cantidad! > 0);
-}
-// Nuevos imports para funcionalidades avanzadas - COMENTADOS HASTA AGREGAR AL PUBSPEC.YAML
 /*
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:printing/printing.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-// Import condicional para web
-import 'dart:html' as html show Blob, Url, document, AnchorElement;
-import 'package:flutter/foundation.dart' show kIsWeb;
-*/
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:posmobilfinal/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
+import 'package:posmobilfinal/src/pages/cliente/caja/search/cliente_caja_search_page.dart';
 
 class ClienteCajaCreatePageIntegrada extends StatefulWidget {
   @override
@@ -63,18 +11,6 @@ class ClienteCajaCreatePageIntegrada extends StatefulWidget {
 
 class _ClienteCajaCreatePageIntegradaState extends State<ClienteCajaCreatePageIntegrada> {
   final ClienteCajaCreateController controlador = Get.put(ClienteCajaCreateController());
-  final TextEditingController efectivoController = TextEditingController();
-  
-  // Nuevos controladores para datos SII
-  final TextEditingController rutClienteController = TextEditingController();
-  final TextEditingController nombreClienteController = TextEditingController();
-  final TextEditingController direccionClienteController = TextEditingController();
-  final TextEditingController comunaClienteController = TextEditingController();
-  
-  bool mostrarEfectivo = false;
-  bool mostrarDatosCliente = false;
-  bool generandoBoletaSII = false;
-  BoletaSII? ultimaBoletaSII;
 
   void _resetPage() {
     controlador.selectedProducts.clear();
@@ -82,87 +18,36 @@ class _ClienteCajaCreatePageIntegradaState extends State<ClienteCajaCreatePageIn
     controlador.pago.value = 0;
     controlador.formaPago = '';
     controlador.codigoBarraController.clear();
-    efectivoController.clear();
-    
-    // Limpiar campos SII
-    rutClienteController.clear();
-    nombreClienteController.clear();
-    direccionClienteController.clear();
-    comunaClienteController.clear();
-    
-    mostrarEfectivo = false;
-    mostrarDatosCliente = false;
-    generandoBoletaSII = false;
-    ultimaBoletaSII = null;
-    
     controlador.update();
     setState(() {});
   }
 
-  Future<bool> _onWillPop() async {
-    final salir = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Salir'),
-        content: const Text('¿Desea salir de la aplicación?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sí'),
-          ),
-        ],
-      ),
-    );
-    if (salir == true) {
-      exit(0);
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Obx(() => Scaffold(
-        resizeToAvoidBottomInset: true,
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Expanded(child: _campoCodigoBarra()),
-              _iconSearch(context),
-            ],
-          ),
-          actions: [
-            _iconScanMobile(context),
-            // Nuevo botón para ver última boleta SII
-            if (ultimaBoletaSII != null)
-              IconButton(
-                icon: const Icon(Icons.receipt_long, color: Colors.green),
-                tooltip: 'Ver última boleta SII',
-                onPressed: () => _mostrarUltimaBoletaSII(),
-              ),
-          ],
-        ),
-        body: Column(
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
           children: [
-            Expanded(
-              child: controlador.selectedProducts.isNotEmpty
-                  ? ListView(
-                      children: controlador.selectedProducts
-                          .where((product) => product != null)
-                          .map((Producto product) => _cardProduct(product))
-                          .toList(),
-                    )
-                  : const Center(child: Text('No hay ningun producto agregado aun')),
-            ),
-            _footerVenta(context),
+            Expanded(child: _campoCodigoBarra()),
+            _iconSearch(context),
           ],
         ),
-      )),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: controlador.selectedProducts.isNotEmpty
+                ? ListView(
+                    children: controlador.selectedProducts
+                        .where((product) => product != null)
+                        .map((product) => _cardProduct(product))
+                        .toList(),
+                  )
+                : const Center(child: Text('No hay ningun producto agregado aun')),
+          ),
+          _footerVenta(context),
+        ],
+      ),
     );
   }
 
@@ -171,71 +56,243 @@ class _ClienteCajaCreatePageIntegradaState extends State<ClienteCajaCreatePageIn
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         color: Colors.white,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'TOTAL: \$${controlador.total.value}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                ),
-              ],
+            Expanded(
+              child: Text(
+                'TOTAL: ${controlador.total.value}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
             ),
-            const SizedBox(height: 8),
-            
-            // Mostrar loading de boleta SII
-            if (generandoBoletaSII)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () async {
+                await controlador.createBill(context);
+                _resetPage();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              ),
+              child: const Text('Grabar', style: TextStyle(fontSize: 16, color: Colors.white)),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () async {
+                await controlador.emitirBoletaSii(context: context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+              ),
+              child: const Text('Emitir Boleta SII', style: TextStyle(fontSize: 14, color: Colors.white)),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: (controlador.dteXmlString != null && controlador.dteXmlString!.isNotEmpty)
+                  ? () {
+                      // Navegar a la demo PDF con el XML real
+                      Get.toNamed('/boletaPdfDemo', arguments: controlador.dteXmlString);
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+              ),
+              child: const Text('Ver boleta PDF', style: TextStyle(fontSize: 14, color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _campoCodigoBarra() {
+    return Container(
+      margin: const EdgeInsets.only(left: 10, top: 5, right: 10),
+      child: SizedBox(
+        width: 180.0,
+        height: 40.0,
+        child: TextField(
+          controller: controlador.codigoBarraController,
+          keyboardType: TextInputType.text,
+          decoration: InputDecoration(
+              fillColor: Colors.white,
+              filled: true,
+              hintText: 'Codigo de barra',
+              suffixIcon: IconButton(
+                onPressed: () async {
+                  controlador.codigoBarraController.text = controlador.codigoBarraController.text.trim();
+                  await controlador.code(context);
+                  controlador.codigoBarraController.clear();
+                  controlador.update();
+                  setState(() {});
+                },
+                icon: const Icon(Icons.search),
+              ),
+              hintStyle: const TextStyle(fontSize: 14, color: Colors.black),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(color: Colors.grey)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(color: Colors.grey)),
+              contentPadding: const EdgeInsets.all(7)),
+        ),
+      ),
+    );
+  }
+
+  Widget _iconSearch(BuildContext context) {
+    return IconButton(
+      onPressed: () async {
+        final productoSeleccionado = await showSearch(
+          context: context,
+          delegate: ClienteCajaSearchPage(controlador.productos),
+        );
+        if (productoSeleccionado != null && productoSeleccionado.id != null) {
+          controlador.addItem(productoSeleccionado);
+          controlador.update();
+          setState(() {});
+        }
+      },
+      icon: const Icon(Icons.search, color: Colors.black, size: 20),
+      tooltip: 'Buscar producto',
+    );
+  }
+
+  Widget _cardProduct(dynamic product) {
+    final nombre = product.nombreProducto ?? '';
+    final precioVenta = int.tryParse(product.precioVenta ?? '0') ?? 0;
+    final cantidad = product.cantidad ?? 0;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 5),
+      child: Row(
+        children: [
+          const SizedBox(width: 5),
+          Container(
+            width: MediaQuery.of(context).size.height * 0.13,
+            child: Text(
+              nombre.isNotEmpty
+                  ? (nombre.length > 30 ? nombre.substring(0, 30) : nombre)
+                  : '',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            width: MediaQuery.of(context).size.height * 0.11,
+            child: _buttonsAddOrRemove(product),
+          ),
+          const Spacer(),
+          Container(
+            width: MediaQuery.of(context).size.height * 0.05,
+            child: Text(
+              product.precioVenta ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            width: MediaQuery.of(context).size.height * 0.05,
+            child: Text(
+              '${precioVenta * cantidad}',
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            width: MediaQuery.of(context).size.height * 0.04,
+            child: _iconDelete(product),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconDelete(dynamic product) {
+    return IconButton(
+      onPressed: () => setState(() {
+        controlador.deleteItem(product);
+      }),
+      icon: const Icon(Icons.delete, color: Colors.red),
+    );
+  }
+
+  Widget _buttonsAddOrRemove(dynamic product) {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => setState(() {
+            controlador.removeItem(product);
+          }),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                bottomLeft: Radius.circular(8),
+              ),
+            ),
+            child: const Text('-'),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          color: Colors.grey[200],
+          child: Text('${product.cantidad ?? 0}'),
+        ),
+        GestureDetector(
+          onTap: () => setState(() {
+            controlador.addItem(product);
+          }),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+            ),
+            child: const Text('+'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+    );
+    final bytes = await pdf.save();
+    setState(() {
+      pdfPreviewBytes = bytes;
+      generandoPDF = false;
+    });
+  }
+                      data: controlador.selectedProducts.map((p) => [
+                        p.nombreProducto ?? '',
+                        p.cantidad?.toString() ?? '1',
+                        p.precioVenta ?? '0',
+                        ((int.tryParse(p.precioVenta ?? '0') ?? 0) * (p.cantidad ?? 1)).toString()
+                      ]).toList(),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Generando boleta electrónica SII...',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                    pw.SizedBox(height: 20),
+                    pw.Align(
+                      alignment: pw.Alignment.centerRight,
+                      child: pw.Text('TOTAL: \\$${controlador.total.value}', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
                     ),
                   ],
-                ),
-              ),
-            
-            // Mostrar datos del cliente si están expandidos
-            if (mostrarDatosCliente) _seccionDatosCliente(),
-            
-            if (!mostrarEfectivo && !generandoBoletaSII) Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _onEfectivoPressed(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('Efectivo + Boleta SII', style: TextStyle(fontSize: 16, color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _onTarjetaPressed(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('Tarjeta + Boleta SII', style: TextStyle(fontSize: 16, color: Colors.white)),
+                );
+              },
+            ),
+          );
+          final bytes = await pdf.save();
+          setState(() {
+            pdfPreviewBytes = bytes;
+            generandoPDF = false;
+          });
+        }
                   ),
                 ),
               ],
@@ -1838,4 +1895,4 @@ Generado desde POS Móvil TECNOALSA
   void _mostrarCargando(String mensaje) {
     print('Cargando: $mensaje');
   }
-}
+}*/

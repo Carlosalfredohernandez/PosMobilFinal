@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/busqueda/mantenedores_maestros_controller.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/crear/mantenedores_maestros_crear_page.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/delegate/mantenedores_maestros_delegate_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/busqueda/mantenedores_maestros_controller.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/crear/mantenedores_maestros_crear_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/delegate/mantenedores_maestros_delegate_page.dart';
 class MantenedoresMaestrosPage extends StatelessWidget {
 
   MantenedoresMaestrosController controlador = Get.put(MantenedoresMaestrosController());

@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/providers/local_provider.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/providers/local_provider.dart';
 
 class ClienteLocalCreateController extends GetxController {
+    Future<void> eliminarLocal(Local local) async {
+      try {
+        ResponseApi response = await localProvider.deleteLocal(local.id!);
+        if (response.success == true) {
+          Get.snackbar('Éxito', response.message ?? 'Local eliminado correctamente');
+          await cargarLocales();
+        } else {
+          Get.snackbar('Error', response.message ?? 'No se pudo eliminar el local');
+        }
+      } catch (e) {
+        Get.snackbar('Error', 'No se pudo eliminar el local');
+      }
+    }
   Usuario sesionUsuario = Usuario.fromJson(GetStorage().read('usuario'));
   final LocalProvider localProvider = LocalProvider();
 

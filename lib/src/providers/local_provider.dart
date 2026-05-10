@@ -1,11 +1,33 @@
 import 'package:get/get.dart';
+import 'dart:convert';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/environment/environment.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
+import 'package:posmobilfinal/src/environment/environment.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
 
 class LocalProvider extends GetConnect{
+    Future<ResponseApi> deleteLocal(String id) async {
+      Response response = await super.delete(
+        '$url/delete/$id',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': userSession.sessionToken ?? ''
+        },
+      );
+      if (response.statusCode == 404) {
+        return ResponseApi(success: false, message: 'Local no encontrado (404)');
+      }
+      dynamic data = response.body;
+      if (data is String) {
+        try {
+          data = json.decode(data);
+        } catch (e) {
+          return ResponseApi(success: false, message: data.toString());
+        }
+      }
+      return ResponseApi.fromJson(data);
+    }
   String url = '${Environment.API_URL}api/locales';
   Usuario userSession = Usuario.fromJson(GetStorage().read('usuario') ?? {});
 

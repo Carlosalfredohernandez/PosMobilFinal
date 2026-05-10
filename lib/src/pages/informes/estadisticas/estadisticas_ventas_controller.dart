@@ -1,48 +1,68 @@
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/detalle.dart';
-import 'package:posmobil/src/providers/inventario_provider.dart';
+import 'package:posmobilfinal/src/models/detalle.dart';
+import 'package:posmobilfinal/src/providers/boletas_provider.dart';
 
 class EstadisticasVentasController extends GetxController {
-  // Variables públicas para filtros
   DateTime? fechaInicialFiltro;
   DateTime? fechaFinalFiltro;
   String filtroProducto = '';
+  String filtroCategoria = '';
 
   var detallesBoleta = <DetalleBoleta>[].obs;
-
-  final InventarioProvider inventarioProvider = InventarioProvider();
+  final BoletasProvider boletasProvider = BoletasProvider();
 
   int get totalProductosVendidos =>
       detallesBoleta.fold(0, (sum, det) => sum + (int.tryParse(det.cantidad ?? '0') ?? 0));
 
-  // Filtra DetalleBoleta por producto, fechas y nombre
-  Future<void> filtrarInventario(String idProducto) async {
+  // Mostrar todos los productos vendidos
+  Future<void> mostrarTodos() async {
     try {
-      final boletaList = await inventarioProvider.getDetallesBoleta();
-      List<DetalleBoleta> filtrados = boletaList;
+      print('Usuario en sesión: \\${boletasProvider.userSession.id}');
+      final boletas = await boletasProvider.getAllByUser();
+      print('Boletas recibidas de la API: \\${boletas.length}');
+      detallesBoleta.value = boletas.expand((b) => b.detalle ?? <DetalleBoleta>[]).toList();
+      print('Detalles de boleta totales: \\${detallesBoleta.length}');
+    } catch (e) {
+      detallesBoleta.clear();
+      print('Error al obtener boletas: \\${e.toString()}');
+      Get.snackbar('Error', 'No se pudo cargar el detalle de boletas');
+    }
+  }
 
-      // Filtrar por producto si corresponde
-      if (idProducto.isNotEmpty) {
-        filtrados = filtrados.where((det) => (det.idProducto ?? '').contains(idProducto)).toList();
-      }
+  // Mostrar productos por rango de fechas
+  Future<void> mostrarPorRango(DateTime desde, DateTime hasta) async {
+    try {
+      // Ajustar fechas para incluir todo el día final (límite superior exclusivo)
+      final desdeInicio = DateTime(desde.year, desde.month, desde.day, 0, 0, 0);
+      final hastaExclusivo = DateTime(hasta.year, hasta.month, hasta.day, 0, 0, 0).add(const Duration(days: 1));
+      final boletas = await boletasProvider.getTrimedDateArray(
+        desdeInicio.toIso8601String(),
+        hastaExclusivo.toIso8601String(),
+      );
+      detallesBoleta.value = boletas.expand((b) => b.detalle ?? <DetalleBoleta>[]).toList();
+    } catch (e) {
+      detallesBoleta.clear();
+      Get.snackbar('Error', 'No se pudo cargar el detalle de boletas');
+    }
+  }
 
-      // Filtrar por fechas si corresponde
-      if (fechaInicialFiltro != null && fechaFinalFiltro != null) {
-        filtrados = filtrados.where((det) {
-          final fecha = DateTime.tryParse(det.fecha ?? '');
-          if (fecha == null) return false;
-          return !fecha.isBefore(fechaInicialFiltro!) && !fecha.isAfter(fechaFinalFiltro!);
-        }).toList();
-      }
+  // Mostrar productos por categoría
+  Future<void> mostrarPorCategoria(String categoria) async {
+    try {
+      final boletas = await boletasProvider.getAllByUser();
+      // No existe campo 'categoria' en DetalleBoleta, así que filtramos por nombreProducto o similar
+      detallesBoleta.value = boletas.expand((b) => b.detalle ?? <DetalleBoleta>[]).where((d) => (d.nombreProducto ?? '').toLowerCase().contains(categoria.toLowerCase())).toList();
+    } catch (e) {
+      detallesBoleta.clear();
+      Get.snackbar('Error', 'No se pudo cargar el detalle de boletas');
+    }
+  }
 
-      // Filtrar por nombre de producto si corresponde
-      if (filtroProducto.isNotEmpty && filtroProducto.length >= 3) {
-        filtrados = filtrados.where((det) =>
-          (det.nombreProducto ?? '').toLowerCase().contains(filtroProducto.toLowerCase())
-        ).toList();
-      }
-
-      detallesBoleta.value = filtrados;
+  // Buscar producto individualmente
+  Future<void> buscarProducto(String nombre) async {
+    try {
+      final boletas = await boletasProvider.getAllByUser();
+      detallesBoleta.value = boletas.expand((b) => b.detalle ?? <DetalleBoleta>[]).where((d) => (d.nombreProducto ?? '').toLowerCase().contains(nombre.toLowerCase())).toList();
     } catch (e) {
       detallesBoleta.clear();
       Get.snackbar('Error', 'No se pudo cargar el detalle de boletas');

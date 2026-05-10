@@ -1,16 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/providers/boletas_provider.dart';
-import 'package:posmobil/src/providers/inventario_provider.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/providers/boletas_provider.dart';
+import 'package:posmobilfinal/src/providers/inventario_provider.dart';
 
 class InventariosInformesController extends GetxController {
   BoletasProvider boletasProvider = BoletasProvider();
   InventarioProvider inventarioProvider = InventarioProvider();
   List<Producto> informe = <Producto>[].obs;
   List<Producto> filter = <Producto>[].obs;
-  DateTime currentSelectedDate = DateTime.now();
+
+  void onChangeDate() async {
+    try {
+      await updateBoletas(fechaInicial, fechaFinal);
+      filter.clear();
+      filter.addAll(informe);
+      update();
+    } catch (e, stack) {
+      // Mostrar mensaje de error usando Get.snackbar
+      Get.snackbar(
+        'Error al actualizar',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+      );
+      // Opcional: imprimir el stacktrace en consola para depuración
+      print('Error en onChangeDate: ${e.toString()}\nStacktrace: $stack');
+    }
+  }
   DateTime fechaInicial = DateTime.now();
   DateTime fechaFinal = DateTime.now();
   var total = 0.obs;
@@ -20,18 +38,43 @@ class InventariosInformesController extends GetxController {
     getConsulta();
   }
 
-  void updateBoletas(var fechaInicial, var fechaFinal) async {
-    var result = await inventarioProvider.getAllByDate(fechaInicial, fechaFinal);
+  Future<void> updateBoletas(var fechaInicial, var fechaFinal) async {
+    // Asegurarse que los parámetros sean int (timestamp) para la API
+    int fechaInicialInt = fechaInicial is DateTime ? fechaInicial.millisecondsSinceEpoch : int.tryParse(fechaInicial.toString()) ?? 0;
+    int fechaFinalInt = fechaFinal is DateTime ? fechaFinal.millisecondsSinceEpoch : int.tryParse(fechaFinal.toString()) ?? 0;
+    var result = await inventarioProvider.getAllByDate(fechaInicialInt, fechaFinalInt);
     informe.clear();
     informe.addAll(result);
   }
 
   void getConsulta() async {
     var result = await inventarioProvider.consultaInventario();
-    informe.clear();
-    filter.clear();
-    informe.addAll(result);
-    filter.addAll(result);
+    if (result is List<Producto>) {
+      informe.clear();
+      filter.clear();
+      informe.addAll(result);
+      filter.addAll(result);
+    } else {
+      // Manejo de error: muestra un mensaje y evita que la app se quede pegada
+      String mensaje = 'Error desconocido';
+      // --- Bloque comentado temporalmente por error de análisis ---
+      /*
+      if (result is Map && result['message'] != null) {
+        mensaje = result['message'].toString();
+      }
+      */
+      if (Get.context != null) {
+        ScaffoldMessenger.of(Get.context!).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo obtener el inventario: $mensaje'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      informe.clear();
+      filter.clear();
+      update();
+    }
   }
 
   void regresar() {

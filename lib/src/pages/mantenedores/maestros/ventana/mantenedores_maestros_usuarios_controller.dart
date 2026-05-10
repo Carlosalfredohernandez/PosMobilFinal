@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/providers/local_provider.dart';
-import 'package:posmobil/src/providers/usuarios_empresa_provider.dart';
-import 'package:posmobil/src/providers/usuarios_provider.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/providers/local_provider.dart';
+import 'package:posmobilfinal/src/providers/usuarios_empresa_provider.dart';
+import 'package:posmobilfinal/src/providers/usuarios_provider.dart';
 
 class MantenedoresMaestrosUsuariosController extends GetxController{
   List roles = ['USUARIO','CAJERO'].obs;
@@ -29,46 +29,71 @@ class MantenedoresMaestrosUsuariosController extends GetxController{
   TextEditingController calleController = TextEditingController();
   String? id;
   String? rut;
+  TextEditingController emailController = TextEditingController();
+  TextEditingController rutController = TextEditingController();
 
-  MantenedoresMaestrosUsuariosController(Usuario user){
+  MantenedoresMaestrosUsuariosController(Usuario? user) {
     getLocales();
     usuario = user;
-    telefonoController.text = usuario!.telefono ?? '';
-    comunaController.text = usuario!.comuna ?? '';
-    numeroController.text = usuario!.numero ?? '';
-    regionController.text = usuario!.region ?? '';
-    calleController.text = usuario!.calle ?? '';
-    nombreController.text = usuario!.nombre ?? '';
-    id = usuario!.id;
-    rut = usuario!.rut;
+    telefonoController.text = usuario?.telefono ?? '';
+    comunaController.text = usuario?.comuna ?? '';
+    numeroController.text = usuario?.numero ?? '';
+    regionController.text = usuario?.region ?? '';
+    calleController.text = usuario?.calle ?? '';
+    nombreController.text = usuario?.nombre ?? '';
+    emailController.text = usuario?.email ?? '';
+    rutController.text = usuario?.rut ?? '';
+    id = usuario?.id;
+    rut = usuario?.rut;
   }
 
   void actualizar() async {
-
     String telefono = telefonoController.text.trim();
     String clave = claveController.text.trim();
-    String confirmarClave = claveController.text.trim();
+    String confirmarClave = confirmarClaveController.text.trim();
     String region = regionController.text.trim();
     String calle = calleController.text.trim();
     String numero = numeroController.text.trim();
     String comuna = comunaController.text.trim();
+    String nombre = nombreController.text.trim();
+    String email = emailController.text.trim();
+    String rutValue = rutController.text.trim();
 
     if (validador(rolId,telefono,clave,confirmarClave,region,comuna,numero,calle)){
-      Usuario usuario = Usuario(
-          telefono: telefono,
-          clave: clave,
-          region: region,
-          numero: numero,
-          comuna: comuna,
-          calle: calle,
-          id: id,
-          rut: rut
+      Usuario usuarioNuevo = Usuario(
+        telefono: telefono,
+        clave: clave,
+        region: region,
+        numero: numero,
+        comuna: comuna,
+        calle: calle,
+        id: id,
+        rut: rutValue,
+        nombre: nombre,
+        email: email
       );
-      ResponseApi responseApi = await usuariosEmpresaProvider.updateEm(usuario, rolId, nombrelocal.value);
+      ResponseApi responseApi;
+      if (usuario == null) {
+        // Crear nuevo usuario usando el modelo Usuario
+        responseApi = await usuariosProvider.create(usuarioNuevo, rolId);
+      } else {
+        // Actualizar usuario existente
+        responseApi = await usuariosEmpresaProvider.updateEm(usuarioNuevo, rolId, nombrelocal.value);
+      }
 
       if (responseApi.success == true ){
         Get.snackbar('Proceso terminado', responseApi.message ?? '');
-        Get.offNamedUntil('/mantenedores/maestros/busqueda', (route) => false);
+        telefonoController.clear();
+        claveController.clear();
+        confirmarClaveController.clear();
+        comunaController.clear();
+        numeroController.clear();
+        nombreController.clear();
+        regionController.clear();
+        calleController.clear();
+        emailController.clear();
+        rutController.clear();
+        Get.back();
       }
       else {
         Get.snackbar('Registro fallido', responseApi.message ?? '');

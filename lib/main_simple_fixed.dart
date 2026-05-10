@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_integrada.dart';
-import 'package:posmobil/src/pages/login/login_page.dart';
-import 'package:posmobil/src/pages/login/login_controller.dart';
-import 'package:posmobil/src/pages/menu_inicio/menu_inicio_page.dart';
-import 'package:posmobil/src/pages/menugeneral/menu_general_page.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/pages/cliente/caja/create/cliente_caja_create_antiguo.dart';
+import 'package:posmobilfinal/src/pages/login/login_page.dart';
+import 'package:posmobilfinal/src/pages/login/login_controller.dart';
+//import 'package:posmobilfinal/src/pages/menu_inicio/menu_inicio_page.dart';
+import 'package:posmobilfinal/src/pages/menugeneral/menu_general_page.dart';
 
 // VERSION SIMPLE Y ESTABLE - SIN MULTIEMPRESAS
 // Esta es una version simplificada que funciona con el backend existente
@@ -69,16 +69,21 @@ class _MyAppState extends State<MyApp> {
         ),
 
         // Menu principal
-        GetPage(
+       /* GetPage(
           name: '/inicio/cliente',
           page: () => MenuInicioPage(),
           transition: Transition.fadeIn,
         ),
-
-        // POS - Caja
+*/
+        // POS - Caja (INTEGRADA DESHABILITADA TEMPORALMENTE)
+        // GetPage(
+        //   name: '/inicio/cliente/caja/create',
+        //   page: () => ClienteCajaCreatePageIntegrada(),
+        //   transition: Transition.rightToLeft,
+        // ),
         GetPage(
-          name: '/inicio/cliente/caja/create',
-          page: () => ClienteCajaCreatePageIntegrada(),
+          name: '/inicio/cliente/caja/create_antiguo',
+          page: () => ClienteCajaCreatePage(),
           transition: Transition.rightToLeft,
         ),
 

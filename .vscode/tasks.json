@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Ejecutar Flutter en emulador",
+			"type": "shell",
+			"command": "flutter emulators; flutter emulators --launch $(flutter emulators | Select-String -Pattern '•' | Select-Object -First 1 | ForEach-Object { ($_ -split '•')[1].Trim() }); flutter run",
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

@@ -2,8 +2,31 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:posmobilfinal/src/pages/ventas/ventas_page.dart';
 
 class MenuGeneralPageController extends GetxController {
+  void goToPuntoDeVentas() async {
+    try {
+      await Get.toNamed('/inicio/cliente/caja/create_antiguo');
+    } catch (e) {
+      print('Error navegando a Punto de Ventas: $e');
+      _showErrorMessage('Página de Punto de Ventas no disponible');
+    }
+  }
+
+  void goToTotem() async {
+    try {
+      // Asegura que el controlador del carrito esté disponible
+      if (!Get.isRegistered<CarritoController>()) {
+        Get.put(CarritoController());
+      }
+      await Get.toNamed('/ventas');
+      Get.offNamed('/menugeneral');
+    } catch (e) {
+      print('Error navegando a ventas (totem): $e');
+      _showErrorMessage('Página de ventas no disponible');
+    }
+  }
 
   void goToCategory() async {
     try {
@@ -37,28 +60,26 @@ class MenuGeneralPageController extends GetxController {
 
   void goToinformesventas() async {
     try {
-      await Get.toNamed('/informes/ventas');
-      Get.offNamed('/menugeneral');
+      await Get.toNamed('/informes/detalle_venta');
+      //Get.offNamed('/menugeneral'); // No regreses automáticamente al menú general
     } catch (e) {
       print('Error navegando a informes de ventas: $e');
       _showErrorMessage('Página de informes de ventas no disponible');
     }
   }
-  
+
   void goToEstadisticas() async {
     try {
-      await Get.toNamed('/informes/estadisticas');
-      Get.offNamed('/menugeneral');
+      await Get.toNamed('/menu_general/estadisticas');
     } catch (e) {
       print('Error navegando a estadísticas: $e');
       _showErrorMessage('Página de estadísticas no disponible');
     }
   }
-  
+
   void goToInventarios() async {
     try {
-      await Get.toNamed('inventarios/create');
-      Get.offNamed('/menugeneral');
+      await Get.toNamed('/inventarios/menu');
     } catch (e) {
       print('Error navegando a inventarios: $e');
       _showErrorMessage('Página de inventarios no disponible');
@@ -67,11 +88,11 @@ class MenuGeneralPageController extends GetxController {
 
   void goToUser() async {
     try {
-      await Get.toNamed('/inicio/cliente/mantenedorlistadorusuarios');
+      await Get.toNamed('/usuarios_empresa');
       Get.offNamed('/menugeneral');
     } catch (e) {
-      print('Error navegando a usuarios: $e');
-      _showErrorMessage('Página de usuarios no disponible');
+      print('Error navegando a usuarios empresa: $e');
+      _showErrorMessage('Página de usuarios empresa no disponible');
     }
   }
 
@@ -96,7 +117,7 @@ class MenuGeneralPageController extends GetxController {
 
   void logout() {
     print('Cerrando sesión y saliendo de la aplicación...');
-    
+
     // Limpiar TODOS los datos de sesión
     final storage = GetStorage();
     storage.remove('usuario_empresa');
@@ -105,7 +126,7 @@ class MenuGeneralPageController extends GetxController {
     storage.remove('usuarioempresa');
     storage.remove('usuario');
     storage.remove('clear_empresa_login_fields');
-    
+
     // Mostrar mensaje de despedida
     Get.snackbar(
       '👋 Hasta luego',
@@ -113,7 +134,7 @@ class MenuGeneralPageController extends GetxController {
       snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 2),
     );
-    
+
     // Cerrar aplicación después de un breve delay
     Future.delayed(const Duration(seconds: 1), () {
       if (Platform.isAndroid) {

@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/usuario.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
 import '../environment/environment.dart';
 import '../models/categoria.dart';
 import '../models/response_api.dart';

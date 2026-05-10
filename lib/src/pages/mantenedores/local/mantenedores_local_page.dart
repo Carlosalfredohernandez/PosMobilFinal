@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:posmobil/src/pages/cliente/local/create/cliente_local_create_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/local/create/cliente_local_create_page.dart';
 
 
 class MantenedoresLocalPage extends StatelessWidget {

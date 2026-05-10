@@ -1,11 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 //import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/pages/cliente/productos/editar/cliente_productos_editar_controller.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/pages/cliente/productos/editar/cliente_productos_editar_controller.dart';
 
 
 class ClienteProductosEditarPage extends StatelessWidget {
+    Widget _bannerImagenProducto(BuildContext context) {
+      return Obx(() {
+        final imagen = controlador.imagenSeleccionada.value;
+        final url = controlador.product?.imagenUrl;
+        return GestureDetector(
+          onTap: () => controlador.seleccionarImagen(context),
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+            height: 160,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.blueAccent, width: 1.5),
+              image: imagen != null
+                  ? DecorationImage(
+                      image: FileImage(imagen),
+                      fit: BoxFit.cover,
+                    )
+                  : (url != null && url.isNotEmpty)
+                      ? DecorationImage(
+                          image: NetworkImage(url),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+            ),
+            child: (imagen == null && (url == null || url.isEmpty))
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.add_a_photo, size: 48, color: Colors.blueAccent),
+                      SizedBox(height: 8),
+                      Text('Agregar imagen', style: TextStyle(color: Colors.blueAccent, fontSize: 16)),
+                    ],
+                  )
+                : null,
+          ),
+        );
+      });
+    }
   final Producto? producto;
   late final ClienteProductosEditarController controlador;
 
@@ -20,10 +60,6 @@ class ClienteProductosEditarPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('EDITAR PRODUCTO'),
         centerTitle: true,
-      ),
-      bottomNavigationBar: Container(
-        margin: EdgeInsets.only(bottom: 15),
-        child: _buttonActualizar(context)
       ),
       body: Stack( // POSICIONAR ELEMENTOS UNO ENCIMA DEL OTRO
         children: [
@@ -44,8 +80,8 @@ class ClienteProductosEditarPage extends StatelessWidget {
 
   Widget _boxForm(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.1, left: 50, right: 50),
+      height: MediaQuery.of(context).size.height * 0.85,
+      margin: EdgeInsets.only(top: 4, left: 10, right: 10, bottom: 10),
       decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: const <BoxShadow>[
@@ -59,11 +95,13 @@ class ClienteProductosEditarPage extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
+            _bannerImagenProducto(context),
             _textYourInfo(),
             _textFieldName(),
             _textFieldDescription(),
             _textFieldPrice(),
             _campoCodigoBarra(context),
+            _buttonActualizar(context),
             _buttonDeshabilitar(context)
           ],
         ),
@@ -156,18 +194,20 @@ class ClienteProductosEditarPage extends StatelessWidget {
   Widget _buttonActualizar(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(left: 30, right: 30, top: 18),
+      margin: EdgeInsets.only(left: 30, right: 30, top: 0),
       child: ElevatedButton(
           onPressed: () {
             controlador.actualizarProducto(context);
           },
           style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 15)
+              padding: EdgeInsets.symmetric(vertical: 15),
+              backgroundColor: Colors.blueAccent
           ),
-          child: Text(
+          child: const Text(
             'ACTUALIZAR PRODUCTO',
             style: TextStyle(
-                color: Colors.black
+                color: Colors.white,
+                fontWeight: FontWeight.bold
             ),
           )
       ),

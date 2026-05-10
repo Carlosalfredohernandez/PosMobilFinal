@@ -3,32 +3,41 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
-import 'package:posmobil/src/models/boleta.dart';
-import 'package:posmobil/src/models/detalle.dart';
-import 'package:posmobil/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/models/detalle.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
 
 class PdfInventarioPage extends StatefulWidget {
-
   List<Producto> productos = <Producto>[];
   var total;
-  PdfInventarioPage({super.key, required this.productos, this.total});
+  final String? categoria;
+  PdfInventarioPage({
+    super.key,
+    required this.productos,
+    this.total,
+    this.categoria,
+  });
 
   @override
-  State<PdfInventarioPage> createState() => _PdfInventarioPage(productos: productos, total: total);
+  State<PdfInventarioPage> createState() => _PdfInventarioPage(
+    productos: productos,
+    total: total,
+    categoria: categoria,
+  );
 }
 
 class _PdfInventarioPage extends State<PdfInventarioPage> {
   List<DetalleBoleta> detalles = <DetalleBoleta>[];
   List<Producto> productos = <Producto>[];
   var total;
-  _PdfInventarioPage({required this.productos, this.total});
+  final String? categoria;
+  _PdfInventarioPage({required this.productos, this.total, this.categoria});
   Uint8List? archivoPdf;
   pw.Document? pdf;
 
   double sizeIcon1 = 45;
   double sizeIcon2 = 30;
   double sizeIcon3 = 30;
-
 
   @override
   void initState() {
@@ -37,9 +46,11 @@ class _PdfInventarioPage extends State<PdfInventarioPage> {
   }
 
   Future<void> initPDF() async {
-    archivoPdf = await generarPdf();
+    final pdfData = await generarPdf();
+    setState(() {
+      archivoPdf = pdfData;
+    });
   }
-
 
   String numberFormat(int x) {
     List<String> parts = x.toString().split('.');
@@ -65,80 +76,85 @@ class _PdfInventarioPage extends State<PdfInventarioPage> {
         elevation: 1,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              SizedBox(
-                height: 600,
-                width: double.maxFinite,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 25,
-                    vertical: 25,
-                  ),
-                  child: PdfPreview(
-                    build: (format) => archivoPdf!,
-                    useActions: false,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: archivoPdf == null
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                child: Column(
                   children: [
-                    GestureDetector(
-                      onTap: () async {
-                        archivoPdf = await generarPdf();
-                        setState(
-                              () {
-                            archivoPdf = archivoPdf;
-                          },
-                        );
-                      },
-                      child: Icon(
-                        Icons.picture_as_pdf,
-                        size: sizeIcon1,
-                        color: Colors.red,
+                    SizedBox(
+                      height: 600,
+                      width: double.maxFinite,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 25,
+                          vertical: 25,
+                        ),
+                        child: PdfPreview(
+                          build: (format) => archivoPdf!,
+                          useActions: false,
+                        ),
                       ),
                     ),
-                    SizedBox(
-                      height: 20,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 50),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              archivoPdf = await generarPdf();
+                              setState(() {
+                                archivoPdf = archivoPdf;
+                              });
+                            },
+                            child: Icon(
+                              Icons.picture_as_pdf,
+                              size: sizeIcon1,
+                              color: Colors.red,
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          SizedBox(height: 20),
+                          GestureDetector(
+                            onTap: () async {
+                              await Printing.sharePdf(
+                                bytes: archivoPdf!,
+                                filename: 'Informe_de_ventas.pdf',
+                              );
+                            },
+                            child: Icon(
+                              Icons.share,
+                              color: Colors.grey,
+                              size: 40,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    SizedBox(
-                      height: 20,
-                    ),
-              GestureDetector(
-                onTap: () async {
-                  await Printing.sharePdf(
-                      bytes: archivoPdf!, filename: 'Informe_de_ventas.pdf');
-                },
-                child: Icon(
-                  Icons.share,
-                  color: Colors.grey,
-                  size: 40,
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-        ]
       ),
-    )));
+    );
   }
 
   Future<Uint8List> generarPdf() async {
     var pdf = pw.Document();
-    final headers = ['Producto','Codigo','Cantidad'];
-    final data = productos.map((Producto producto) =>[
-      producto.nombreProducto ?? '',producto.codigoBarra ?? '',producto.cantidad ?? ''
-    ]).toList();
-    // final _headers = ['Boleta','Producto','Precio','Cantidad','Total'];
-    // final detalle = detalles.map((DetalleBoleta detail) =>[
-    //   detail.id ?? '',detail.nombreProducto ?? '',detail.valorLinea ?? '',detail.cantidad ?? '',detail.totalLinea ?? ''
-    // ]).toList();
+    final headers = ['Producto', 'Codigo', 'Cantidad'];
+    final data = productos
+        .map(
+          (Producto producto) => [
+            producto.nombreProducto ?? '',
+            producto.codigoBarra ?? '',
+            producto.cantidad?.toString() ?? '',
+          ],
+        )
+        .toList();
+
+    // Obtener fecha y hora actual
+    final now = DateTime.now();
+    final fechaHora =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}  ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     pdf.addPage(
       pw.MultiPage(
@@ -147,43 +163,43 @@ class _PdfInventarioPage extends State<PdfInventarioPage> {
         build: (context) => [
           pw.Padding(
             padding: pw.EdgeInsets.symmetric(vertical: 20),
-            child: pw.Center(
-              child: pw.Text(
-                'Informe de Inventario',
-                style: pw.TextStyle(
-                  fontSize: 25,
-                  color: PdfColors.black,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                pw.Text(
+                  'Informe de Inventario',
+                  style: pw.TextStyle(fontSize: 25, color: PdfColors.black),
+                  textAlign: pw.TextAlign.center,
                 ),
-                textAlign: pw.TextAlign.center,
-              ),
+                if (categoria != null && categoria!.isNotEmpty) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    'Categoría: ${categoria!}',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      color: PdfColors.blueGrey800,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ],
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  'Emitido: $fechaHora',
+                  style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ],
             ),
           ),
-
-          pw.SizedBox(
-            height: 20,
-          ),
+          pw.SizedBox(height: 20),
           pw.Padding(
-            padding: pw.EdgeInsets.symmetric(
-              vertical: 10,
-              horizontal: 20,
-            ),
-            child: pw.Table.fromTextArray(
-                headers: headers,
-                data: data
-            ),
+            padding: pw.EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+            child: pw.Table.fromTextArray(headers: headers, data: data),
           ),
-          pw.SizedBox(
-            height: 20,
-          ),
-
+          pw.SizedBox(height: 20),
         ],
       ),
     );
     return pdf.save();
   }
-
-
-
 }
-
-

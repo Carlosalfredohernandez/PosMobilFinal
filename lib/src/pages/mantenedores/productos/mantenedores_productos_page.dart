@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
-import 'package:posmobil/src/pages/mantenedores/productos/mantenedores_productos_controller.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/pages/cliente/productos/editar/cliente_productos_editar_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/productos/mantenedores_productos_controller.dart';
 
 class MantenedoresProductosPage extends StatefulWidget {
   const MantenedoresProductosPage({super.key});
@@ -56,16 +56,30 @@ class _MantenedoresProductosPageState extends State<MantenedoresProductosPage> {
       body: ListView.builder(
         itemCount: controlador.filter.length,
         itemBuilder: (_, index) {
+          final producto = controlador.filter[index];
+          final url = producto.imagenUrl;
+          print('[DEBUG] URL imagen producto: ' + (url ?? 'null'));
           return ListTile(
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ClienteProductosEditarPage(producto: controlador.filter[index]))
+                MaterialPageRoute(builder: (context) => ClienteProductosEditarPage(producto: producto))
               );
             },
-            title: Text(controlador.filter[index].codigoBarra.toString()),
-            subtitle: Text('${controlador.filter[index].nombreProducto.toString()}\n${controlador.filter[index].descripcionProducto.toString()}'),
-            leading: Icon(Icons.category),
+            title: Text(producto.codigoBarra.toString()),
+            subtitle: Text('${producto.nombreProducto.toString()}\n${producto.descripcionProducto.toString()}'),
+            leading: url != null && url.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      url,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                    ),
+                  )
+                : Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
           );
         },
       ),

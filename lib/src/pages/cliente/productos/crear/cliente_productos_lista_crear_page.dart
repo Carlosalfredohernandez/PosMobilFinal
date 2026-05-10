@@ -1,11 +1,45 @@
 import 'package:flutter/material.dart';
 //import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/categoria.dart';
+import 'package:posmobilfinal/src/models/categoria.dart';
 
 import 'cliente_productos_lista_crear_controller.dart';
 
 class ClienteProductosListaCrearPage extends StatelessWidget {
+  Widget _bannerImagenProducto(BuildContext context) {
+    return Obx(() {
+      final imagen = controlador.imagenSeleccionada.value;
+      return GestureDetector(
+        onTap: () => controlador.seleccionarImagen(context),
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+          height: 160,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.blueAccent, width: 1.5),
+            image: imagen != null
+                ? DecorationImage(
+                    image: FileImage(imagen),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+          ),
+          child: imagen == null
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.add_a_photo, size: 48, color: Colors.blueAccent),
+                    SizedBox(height: 8),
+                    Text('Agregar imagen', style: TextStyle(color: Colors.blueAccent, fontSize: 16)),
+                  ],
+                )
+              : null,
+        ),
+      );
+    });
+  }
 
   ClienteProductosListaCrearController controlador = Get.put(ClienteProductosListaCrearController());
 
@@ -71,6 +105,7 @@ class ClienteProductosListaCrearPage extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
+            _bannerImagenProducto(context),
             _textYourInfo(),
             _textFieldName(),
             _textFieldDescription(),

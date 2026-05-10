@@ -3,10 +3,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
-import 'package:posmobil/src/models/boleta.dart';
-import 'package:posmobil/src/models/detalle.dart';
-import 'package:posmobil/src/models/inventario.dart';
-import 'package:posmobil/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/models/detalle.dart';
+import 'package:posmobilfinal/src/models/inventario.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
 
 class PdfVistaPage extends StatefulWidget {
 

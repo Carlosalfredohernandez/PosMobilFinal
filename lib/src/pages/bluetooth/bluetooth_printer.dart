@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:posmobil/src/models/boleta.dart';
-import 'package:posmobil/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
 
 class BluetoothPrinterPage extends StatelessWidget {
   final List<Producto> data;

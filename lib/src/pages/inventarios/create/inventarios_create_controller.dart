@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:posmobil/src/models/inventario.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/models/proveedores.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/providers/boletas_provider.dart';
-import 'package:posmobil/src/providers/inventario_provider.dart';
-import 'package:posmobil/src/providers/local_provider.dart';
-import 'package:posmobil/src/providers/productos_provider.dart';
-import 'package:posmobil/src/providers/proveedor_provider.dart';
+import 'package:posmobilfinal/src/models/inventario.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/proveedores.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/providers/boletas_provider.dart';
+import 'package:posmobilfinal/src/providers/inventario_provider.dart';
+import 'package:posmobilfinal/src/providers/local_provider.dart';
+import 'package:posmobilfinal/src/providers/productos_provider.dart';
+import 'package:posmobilfinal/src/providers/proveedor_provider.dart';
 
 class InventariosCreateController extends GetxController {
   List<Local> locales = <Local>[].obs;
@@ -98,22 +98,43 @@ class InventariosCreateController extends GetxController {
     print(proveedores);
   }
 
-  void createInventario() async {
+  void createInventario({VoidCallback? onSuccess}) async {
     if (validador(localAsignado.value, prove.value, guiaController.text)) {
-      Inventario inventario = Inventario(
-        productos: selectedProducts,
-        fecha: '$fecha',
-        local: int.parse(localAsignado.value),
-        idProvedor: int.parse(prove.value),
-        idCliente: '${23}',
-        idUsuarioE: '1',
-        nroDocumento: int.parse(guiaController.text.trim()),
-      );
-      ResponseApi responseApi = await inventarioProvider.create(inventario);
-      if (responseApi.success == true) {
-        Get.snackbar('Registro logrado', responseApi.message ?? '');
+      bool exito = true;
+      String mensaje = '';
+      for (final producto in selectedProducts) {
+        final inventario = Inventario(
+          idCliente: '23',
+          local: int.parse(localAsignado.value),
+          idUsuarioE: '1',
+          idProvedor: int.parse(prove.value),
+          fecha: '$fecha',
+          nroDocumento: int.tryParse(guiaController.text.trim()),
+          codigoProducto: producto.id ?? producto.codigoBarra,
+          cantidad: producto.cantidad,
+          valor: int.tryParse(producto.precioVenta ?? '0'),
+          tipoMovimiento: '2', // Siempre valor positivo
+        );
+        final responseApi = await inventarioProvider.create(inventario);
+        if (responseApi.success != true) {
+          exito = false;
+          mensaje = responseApi.message ?? '';
+        }
+      }
+      if (exito) {
+        Get.snackbar('Registro logrado', 'Todos los productos fueron registrados');
+        // Limpiar campos y productos seleccionados
+        selectedProducts.clear();
+        guiaController.clear();
+        numController.clear();
+        localAsignado.value = '';
+        prove.value = '';
+        // Llamar callback si se pasa desde la vista
+        if (onSuccess != null) {
+          onSuccess();
+        }
       } else {
-        Get.snackbar('Registro fallido', responseApi.message ?? '');
+        Get.snackbar('Registro fallido', mensaje);
       }
     }
   }
@@ -155,7 +176,7 @@ class InventariosCreateController extends GetxController {
   // Refactor: Usar MobileScanner para escanear código de barras
   // ...existing code...
 
-Future<void> scanBarcodeNormal(BuildContext context) async {
+Future<void> scanBarcodeNormal(BuildContext context, {VoidCallback? onProductAdded}) async {
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -169,13 +190,18 @@ Future<void> scanBarcodeNormal(BuildContext context) async {
             if (code.isNotEmpty) {
               _codigoBarra = code;
               codigoBarraController.text = code;
-              var result = await productosProvider.getProduct(_codigoBarra);
-              if (result != null) {
-                addToBag(result);
+              // Buscar producto en la lista local
+              final producto = await getProductByCodigoBarra(_codigoBarra);
+              if (producto != null) {
+                // Asignar cantidad 1 por defecto si es null o 0
+                producto.cantidad = (producto.cantidad == null || producto.cantidad == 0) ? 1 : producto.cantidad;
+                addOrUpdateSelectedProduct(producto);
+                if (onProductAdded != null) onProductAdded();
+                Get.back(); // Cierra el modal
+                Get.snackbar('Éxito', 'Producto agregado');
               } else {
                 Get.snackbar('Error', 'Producto no encontrado');
               }
-              Navigator.pop(context);
             }
           }
         },

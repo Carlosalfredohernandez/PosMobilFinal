@@ -1,16 +1,84 @@
 // controllers/cliente_caja_create_controller.dart
+// controllers/cliente_caja_create_controller.dart
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:posmobil/src/models/categoria.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/providers/productos_provider.dart';
-import 'package:posmobil/src/providers/categorias_provider.dart';
+import 'package:posmobilfinal/src/models/categoria.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/providers/productos_provider.dart';
+import 'package:posmobilfinal/src/providers/categorias_provider.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:collection/collection.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/models/detalle.dart';
+import 'package:posmobilfinal/src/models/inventario.dart';
+import 'package:posmobilfinal/src/providers/boletas_provider.dart';
+import 'package:posmobilfinal/src/providers/boleta_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:xml/xml.dart';
 
 /// 🎮 CONTROLADOR PRINCIPAL DEL POS
 class ClienteCajaCreateController extends GetxController {
+  /// Emite boleta SII usando la API y guarda el XML real
+  Future<void> emitirBoletaSii({required BuildContext context}) async {
+    isLoading.value = true;
+    try {
+      // Construir datos mínimos para la API (puedes adaptar según tu modelo)
+      final boletaData = {
+        'emisor': sesionUsuario.rut ?? '99999999-9',
+        'receptor': {
+          'rut': '11111111-1',
+          'razon': 'Cliente POS',
+        },
+        'detalles': selectedProducts.map((p) {
+          final precio = double.tryParse(p.precioVenta ?? '0') ?? 0;
+          final cantidad = p.cantidad ?? 1;
+          return {
+            'nombre': p.nombreProducto ?? '',
+            'cantidad': cantidad,
+            'precio': precio,
+            'monto_item': (precio * cantidad).toInt(),
+          };
+        }).toList(),
+        'total': total.value.toInt(),
+        'api_key': 'Vikingo80',
+      };
+      final boletaProvider = BoletaProvider();
+      final boletaId = await boletaProvider.generarBoleta(boletaData);
+      if (boletaId == null) {
+        Get.snackbar('Error', 'No se pudo generar la boleta SII');
+        return;
+      }
+      final xml = await boletaProvider.obtenerXmlBoleta(boletaId);
+      if (xml == null || xml.isEmpty) {
+        Get.snackbar('Error', 'No se pudo obtener el XML de la boleta');
+        return;
+      }
+      dteXmlString = xml;
+      dteXmlDocument = XmlDocument.parse(xml);
+      Get.snackbar('Éxito', 'Boleta SII emitida y XML recibido');
+      update();
+    } catch (e) {
+      Get.snackbar('Error', 'Error emitiendo boleta SII: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+
+
+        @override
+        void onReady() {
+          print('onReady: ClienteCajaCreateController');
+          super.onReady();
+        }
+      /// Actualiza el valor de pago al ingresar la cantidad recibida
+      void onChangeText(String value) {
+        pago.value = double.tryParse(value) ?? 0.0;
+        update();
+      }
+    // Provider para boletas
+    final BoletasProvider boletasProvider = BoletasProvider();
   
   // 🛒 ESTADO DEL CARRITO
   final RxList<Producto> selectedProducts = <Producto>[].obs;
@@ -19,6 +87,20 @@ class ClienteCajaCreateController extends GetxController {
   
   // 📱 CONTROLES DE UI
   final TextEditingController codigoBarraController = TextEditingController();
+
+  // Indicador de carga
+  final RxBool isLoading = false.obs;
+
+  ClienteCajaCreateController() {
+    print('CONSTRUCTOR: ClienteCajaCreateController creado');
+  }
+
+  @override
+  void onInit() {
+    print('onInit: ClienteCajaCreateController');
+    super.onInit();
+    getProducts(); // Cargar productos al inicializar
+  }
   
   // 💳 FORMA DE PAGO
   String formaPago = '';
@@ -33,16 +115,42 @@ class ClienteCajaCreateController extends GetxController {
   ProductosProvider productosProvider = ProductosProvider();
   CategoriasProvider categoriasProvider = CategoriasProvider();
 
-  // ⚡ INICIALIZACIÓN DEL CONTROLADOR
-  @override
-  void onInit() {
-    super.onInit();
-    getProducts(); // Cargar productos al inicializar
+  // Variable para guardar el XML recibido del SII
+  String? dteXmlString;
+  XmlDocument? dteXmlDocument;
+
+  /// Función para recibir el XML del DTE desde una API y guardarlo para uso posterior
+  Future<void> recibirDteXmlDesdeApi() async {
+    isLoading.value = true;
+    final url = Uri.parse('https://tu-api.com/boleta/xml/12345'); // <-- Cambia por tu endpoint real
+    final token = 'TU_TOKEN_DE_AUTENTICACION'; // <-- Cambia por tu método de obtención de token
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/xml',
+        },
+      );
+      if (response.statusCode == 200) {
+        dteXmlString = response.body;
+        dteXmlDocument = XmlDocument.parse(dteXmlString!);
+        Get.snackbar('DTE recibido', 'XML recibido y guardado correctamente');
+      } else {
+        Get.snackbar('Error', 'No se pudo obtener el XML: ${response.statusCode}');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Excepción al obtener el XML: ${e.toString()}');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   /// 📦 CARGAR PRODUCTOS DESDE LA API
   Future<void> getProducts() async {
     try {
+      isLoading.value = true;
       print('📦 Cargando productos desde API...');
       
       // Cargar productos reales desde tu API
@@ -50,7 +158,6 @@ class ClienteCajaCreateController extends GetxController {
       
       // Actualizar la lista observable
       productos.value = productosFromAPI;
-      
       print('✅ Productos cargados desde API: ${productos.length}');
       
       // Debug: mostrar algunos códigos de barra
@@ -61,12 +168,26 @@ class ClienteCajaCreateController extends GetxController {
     } catch (e) {
       print('❌ Error cargando productos desde API: $e');
       Get.snackbar('Error', 'No se pudieron cargar los productos');
+    } finally {
+      isLoading.value = false;
     }
   }
 
   /// 🔍 BUSCAR PRODUCTO POR CÓDIGO DE BARRAS USANDO API
   Future<void> code(BuildContext context) async {
-    final codigo = codigoBarraController.text.trim();
+    String codigo = '';
+    try {
+      print('ACCESO codigoBarraController.text en code: ${StackTrace.current}');
+      codigo = codigoBarraController.text.trim();
+    } catch (e, st) {
+      print('ERROR acceso tardío a codigoBarraController en code: $e\n$st');
+      Get.snackbar('Error', 'Error interno en acceso a código de barras');
+      return;
+    }
+    if (codigo.isEmpty) {
+      Get.snackbar('Error', 'Ingrese un código de barras');
+      return;
+    }
     if (codigo.isEmpty) {
       Get.snackbar('Error', 'Ingrese un código de barras');
       return;
@@ -82,11 +203,11 @@ class ClienteCajaCreateController extends GetxController {
         print('✅ Producto encontrado: ${producto.nombreProducto}');
         // Si lo encuentra, lo agrega a la lista con cantidad 1
         addItem(producto);
-        Get.snackbar('Producto agregado', producto.nombreProducto ?? '');
+        // Get.snackbar('Producto agregado', producto.nombreProducto ?? ''); // ← Mensaje deshabilitado
       } else {
         print('❌ Producto no encontrado para código: $codigo');
         // Si no lo encuentra, abre el modal de creación
-        await _showProductoNoExisteDialog(context, codigo);
+        await showProductoNoExisteDialog(context, codigo);
       }
       
     } catch (e) {
@@ -111,7 +232,7 @@ class ClienteCajaCreateController extends GetxController {
         print('✅ Producto encontrado: ${producto.nombreProducto}');
         // Si encuentra el producto, agregarlo con cantidad 1
         addItem(producto);
-        Get.snackbar('Producto agregado', producto.nombreProducto ?? '');
+        // Get.snackbar('Producto agregado', producto.nombreProducto ?? ''); // ← Mensaje deshabilitado
       } else {
         print('❌ Producto no encontrado para código: $barcode');
         // Si no lo encuentra, llamar callback para mostrar diálogo de creación
@@ -125,7 +246,7 @@ class ClienteCajaCreateController extends GetxController {
   }
 
   /// 📱 MODAL PARA CREAR PRODUCTO CUANDO NO EXISTE
-  Future<void> _showProductoNoExisteDialog(BuildContext context, String barcode) async {
+  Future<void> showProductoNoExisteDialog(BuildContext context, String barcode) async {
     await showDialog(
       context: context,
       builder: (context) => _CrearProductoDialog(barcode: barcode),
@@ -184,40 +305,92 @@ class ClienteCajaCreateController extends GetxController {
   /// 🧮 CALCULAR TOTAL DEL CARRITO
   void _calcularTotal() {
     double totalCalculado = 0.0;
-    
     for (var producto in selectedProducts) {
-      final precio = double.tryParse(producto.precioVenta ?? '0') ?? 0.0;
-      final cantidad = producto.cantidad ?? 0;
+      // Validar precioVenta
+      double precio = 0.0;
+      if (producto.precioVenta != null && producto.precioVenta!.isNotEmpty) {
+        // Reemplazar posibles comas por puntos y eliminar símbolos
+        final precioStr = producto.precioVenta!.replaceAll(',', '.').replaceAll(RegExp(r'[^0-9\.]'), '');
+        precio = double.tryParse(precioStr) ?? 0.0;
+      }
+      // Validar cantidad
+      final cantidad = (producto.cantidad != null && producto.cantidad! > 0) ? producto.cantidad! : 1;
       totalCalculado += precio * cantidad;
     }
-    
     total.value = totalCalculado;
   }
 
-  /// 💾 CREAR BOLETA (MOCK)
-  Future<void> createBill(BuildContext context) async {
+  /// 💾 CREAR BOLETA Y ENVIAR AL BACKEND
+  Future<bool> createBill(BuildContext context) async {
     try {
-      print('💾 Guardando boleta local...');
-      
-      final ventaLocal = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'productos': selectedProducts.map((p) => p.toJson()).toList(),
-        'total': total.value,
-        'formaPago': formaPago,
-        'fecha': DateTime.now().toIso8601String(),
-        'vendedor': sesionUsuario.nombre,
-      };
-      
-      // Aquí iría la lógica para guardar en base de datos local
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      print('✅ Boleta local guardada: ${ventaLocal['id']}');
-      
-      _mostrarMensaje('Venta guardada exitosamente');
-      
+      print('💾 Enviando boleta al backend...');
+      // Construir detalles
+      List<DetalleBoleta> detalles = selectedProducts.map((p) {
+        final precio = double.tryParse(p.precioVenta ?? '0') ?? 0.0;
+        final cantidad = p.cantidad ?? 0;
+        return DetalleBoleta(
+          idProducto: p.id,
+          nombreProducto: p.nombreProducto,
+          cantidad: cantidad.toString(),
+          valorLinea: precio.toString(),
+          totalLinea: (precio * cantidad).toInt(),
+        );
+      }).toList();
+
+      // Construir inventario con datos requeridos
+      // Obtener empresa desde usuarioempresa en GetStorage
+      final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
+      String? empresa = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['empresa'] != null)
+          ? usuarioEmpresaRaw['empresa'].toString()
+          : '0';
+      // Enviar el código del local como string
+      String? codigoLocal = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['local_asignado'] != null)
+          ? usuarioEmpresaRaw['local_asignado'].toString()
+          : (sesionUsuario.localOficina ?? '');
+      Inventario inventario = Inventario(
+        productos: selectedProducts.toList(),
+        fecha: DateTime.now().toIso8601String(),
+        idCliente: empresa,
+        local: int.tryParse(codigoLocal) ?? 0,
+        idUsuarioE: sesionUsuario.id?.toString(),
+      );
+
+      // Mapear productos para backend (precioVenta -> precio_venta)
+      List<Map<String, dynamic>> productosBackend = selectedProducts.map((p) {
+        final map = p.toJson();
+        if (p.precioVenta != null) {
+          map['precio_venta'] = p.precioVenta;
+        }
+        return map;
+      }).toList();
+
+      // Crear boleta
+      Boleta boleta = Boleta(
+        numero: '123', // Valor fijo para pruebas
+        usuario: sesionUsuario.id?.toString(),
+        localUsuario: sesionUsuario.localOficina ?? '',
+        fecha: DateTime.now().toIso8601String(),
+        valor: total.value.toStringAsFixed(0),
+        formaPago: formaPago,
+        productos: productosBackend.cast(),
+        detalle: detalles,
+        inventario: inventario,
+      );
+
+      final response = await boletasProvider.create(boleta);
+      if (response.success == true) {
+        print('✅ Boleta registrada en backend');
+        _mostrarMensaje('Venta guardada exitosamente');
+        return true;
+      } else {
+        print('❌ Error backend: ${response.message}');
+        _mostrarMensaje('Error guardando venta: ${response.message}', esError: true);
+        return false;
+      }
     } catch (e) {
-      print('❌ Error guardando boleta local: $e');
+      print('❌ Error enviando boleta: $e');
       _mostrarMensaje('Error guardando venta: $e', esError: true);
+      return false;
     }
   }
 
@@ -239,12 +412,18 @@ class ClienteCajaCreateController extends GetxController {
     total.value = 0.0;
     pago.value = 0.0;
     formaPago = '';
-    codigoBarraController.clear();
+    try {
+      print('ACCESO codigoBarraController.clear en limpiarCarrito: ${StackTrace.current}');
+      codigoBarraController.clear();
+    } catch (e, st) {
+      print('ERROR acceso tardío a codigoBarraController en limpiarCarrito: $e\n$st');
+    }
     update();
   }
 
   @override
   void onClose() {
+    print('onClose: Disposing codigoBarraController');
     codigoBarraController.dispose();
     super.onClose();
   }

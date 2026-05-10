@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'package:posmobil/src/models/detalle.dart';
-import 'package:posmobil/src/models/inventario.dart';
-import 'package:posmobil/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/detalle.dart';
+import 'package:posmobilfinal/src/models/inventario.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
 
 Boleta boletaFromJson(String str) => Boleta.fromJson(json.decode(str));
 
 String boletaToJson(Boleta data) => json.encode(data.toJson());
 
-class Boleta {
 
+class Boleta {
   String? id;
   String? numero;
   String? usuario;
@@ -16,9 +16,9 @@ class Boleta {
   String? fecha;
   String? valor;
   String? formaPago;
-  List<Producto>? productos = [];
+  List<Map<String, dynamic>>? productos = [];
   Inventario? inventario;
-  List<DetalleBoleta>? detalle= [];
+  List<DetalleBoleta>? detalle = [];
 
   Boleta({
     this.id,
@@ -41,7 +41,7 @@ class Boleta {
     fecha: json["fecha"],
     valor: json["valor"],
     formaPago: json["forma_pago"],
-    productos: json["productos"],
+    productos: json["productos"] != null ? List<Map<String, dynamic>>.from(json["productos"]) : [],
     inventario: json["inventario"],
     detalle: json["detalle"] == null ? [] : List<DetalleBoleta>.from(json["detalle"].map((model) => DetalleBoleta.fromJson(model))),
   );

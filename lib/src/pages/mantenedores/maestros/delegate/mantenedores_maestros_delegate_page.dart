@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/models/usuario_empresa.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/models/usuario_empresa.dart';
 
 
 class MantenedoresMaestrosDelegatePage extends SearchDelegate<Usuario>{

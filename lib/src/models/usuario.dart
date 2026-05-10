@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:posmobil/src/models/rol.dart';
+import 'package:posmobilfinal/src/models/rol.dart';
 
 Usuario usuarioFromJson(String str) => Usuario.fromJson(json.decode(str));
 
@@ -20,8 +20,8 @@ class Usuario {
   String? tipoContrato;
   String? email;
   String? sessionToken;
-  List<rol>? roles = [];
-
+  List<Rol>? roles = [];
+    int? rol; // Added the rol field
   Usuario({
     this.id,
     this.nombre,
@@ -36,7 +36,8 @@ class Usuario {
     this.tipoContrato,
     this.email,
     this.sessionToken,
-    this.roles
+    this.roles,
+    this.rol
   });
 
   factory Usuario.fromJson(Map<String, dynamic> json) => Usuario(
@@ -47,14 +48,19 @@ class Usuario {
     comuna: json["comuna"],
     calle: json["calle"],
     numero: json["numero"],
-    localOficina: json["local_oficina"],
+    localOficina: json["local_asignado"],
     telefono: json["telefono"],
     clave: json["clave"],
     tipoContrato: json["tipo_contrato"],
     email: json["email"],
     sessionToken: json["session_token"],
-    roles: json["roles"] == null ? [] : List<rol>.from(json["roles"].map((model) => rol.fromJson(model))),
-
+    roles: json["roles"] == null
+      ? []
+      : (json["roles"] is String
+        ? List<Rol>.from(
+          (jsonDecode(json["roles"]) as List).map((model) => Rol.fromJson(model)))
+        : List<Rol>.from(json["roles"].map((model) => Rol.fromJson(model)))),
+    rol: json["rol"] is int ? json["rol"] : int.tryParse(json["rol"]?.toString() ?? ""), // Deserialize rol
   );
 
   static List<Usuario> fromJsonList(List<dynamic> jsonList) {
@@ -68,20 +74,19 @@ class Usuario {
     return toList;
   }
 
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "nombre": nombre,
-    "rut": rut,
-    "region": region,
-    "comuna": comuna,
-    "calle": calle,
-    "numero": numero,
-    "local_oficina": localOficina,
-    "telefono": telefono,
-    "clave": clave,
-    "tipo_contrato": tipoContrato,
-    "email": email,
-    "session_token": sessionToken,
-    'roles': roles
-  };
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {};
+    if (nombre != null) data["nombre"] = nombre;
+    if (rut != null) data["rut"] = rut;
+    if (region != null) data["region"] = region;
+    if (comuna != null) data["comuna"] = comuna;
+    if (calle != null) data["calle"] = calle;
+    if (numero != null) data["numero"] = numero;
+    if (telefono != null) data["telefono"] = telefono;
+    if (clave != null) data["clave"] = clave;
+    if (tipoContrato != null) data["tipo_contrato"] = tipoContrato;
+    if (email != null) data["email"] = email;
+    // No enviar: id, rol, roles, session_token, local_oficina
+    return data;
+  }
 }

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/pages/inventarios/create/inventarios_create_controller.dart';
-import 'package:posmobil/src/providers/productos_provider.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/pages/inventarios/create/inventarios_create_controller.dart';
+import 'package:posmobilfinal/src/providers/productos_provider.dart';
 
 class InventarioSearchController extends GetxController {
 

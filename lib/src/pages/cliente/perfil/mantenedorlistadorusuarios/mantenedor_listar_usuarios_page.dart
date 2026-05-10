@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/pages/cliente/perfil/mantenedorlistadorusuarios/mantenedor_listar_usuarios_controller.dart';
-import 'package:posmobil/src/models/usuario_empresa.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/mantenedorlistadorusuarios/mantenedor_listar_usuarios_controller.dart';
+import 'package:posmobilfinal/src/models/usuario_empresa.dart';
 
 class MantenedorListarUsuariosPage extends StatelessWidget {
   final UsuarioEmpresaController controlador = Get.put(UsuarioEmpresaController());

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:posmobil/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/lista/cliente_perfil_lista_page.dart';
 
 //Variables Globales.
 // HomeController controlador = Get.put(HomeController());

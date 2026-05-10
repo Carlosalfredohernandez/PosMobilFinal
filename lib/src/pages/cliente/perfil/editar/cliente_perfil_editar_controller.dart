@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/pages/cliente/perfil/lista/cliente_perfil_lista_controller.dart';
-import 'package:posmobil/src/providers/usuarios_provider.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/lista/cliente_perfil_lista_controller.dart';
+import 'package:posmobilfinal/src/providers/usuarios_provider.dart';
 
 
 class ClientePerfilEditarController extends GetxController{

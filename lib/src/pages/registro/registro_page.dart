@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/pages/registro/registro_controller.dart';
+import 'package:posmobilfinal/src/pages/registro/registro_controller.dart';
 
 //Variables Globales.
 RegistroController controlador = Get.put(RegistroController());

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/models/navigation_bar.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/providers/usuarios_empresa_provider.dart';
-import 'dart:async';
+import 'package:posmobilfinal/src/models/navigation_bar.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/providers/usuarios_empresa_provider.dart';
+import 'package:posmobilfinal/src/models/usuario_empresa.dart';
+import 'package:posmobilfinal/src/pages/ventas/ventas_page.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/usuarios/usuarios_list_page.dart';
 
 // Usuario sesionUsuario = Usuario.fromJson(GetStorage().read('usuario') ?? {});
 Usuario? sesionUsuario;
@@ -17,189 +19,47 @@ class MenuInicioPage extends StatefulWidget {
   State<MenuInicioPage> createState() => _MenuInicioPageState();
 }
 
-class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStateMixin {
-  TextEditingController rutController = TextEditingController();
-  TextEditingController claveController = TextEditingController();
-  
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  UsuariosEmpresaProvider usuariosEmpresaProvider = UsuariosEmpresaProvider();
-  bool _isLoading = false;
-  bool _obscurePassword = true;
-
-  @override
-  void initState() {
-    super.initState();
-    
-    // Limpiar campos de login de usuario empresa
-    _limpiarCamposLogin();
-    
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
+class _MenuInicioPageState extends State<MenuInicioPage>
+    with TickerProviderStateMixin {
+  // Botón para acceder al mantenedor de usuarios
+  Widget _buildUsuariosButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          final claveCorrecta = await _mostrarDialogoClave(context);
+          if (claveCorrecta == true) {
+            Get.to(() => const UsuariosListPage());
+          }
+        },
+        icon: const Icon(Icons.people, color: Colors.white),
+        label: const Text(
+          'Mantenedor Usuarios',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.deepPurple,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
     );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
-
-    _animationController.forward();
-  }
-
-  void _limpiarCamposLogin() {
-    print('🔄 Iniciando limpieza de campos...');
-    print('🔍 Estado inicial - RUT: "${rutController.text}", Clave: "${claveController.text}"');
-    
-    // Verificar si se debe limpiar los campos (cuando viene de logout)
-    final storage = GetStorage();
-    if (storage.read('clear_empresa_login_fields') == true) {
-      print('🔄 Limpiando campos de login por logout...');
-      
-      // Limpiar TODOS los posibles datos persistentes de credenciales
-      storage.remove('saved_rut');
-      storage.remove('saved_password');
-      storage.remove('login_rut');
-      storage.remove('login_password');
-      storage.remove('usuarioempresa_credentials');
-      storage.remove('last_login_data');
-      
-      // RECREAR los controladores completamente para evitar auto-llenado
-      rutController.dispose();
-      claveController.dispose();
-      rutController = TextEditingController();
-      claveController = TextEditingController();
-      
-      storage.remove('clear_empresa_login_fields');
-    } else {
-      // SIEMPRE limpiar los campos al entrar a la página
-      print('🔄 Limpiando campos de login...');
-      rutController.clear();
-      claveController.clear();
-    }
-    
-    print('✅ Estado después de limpieza - RUT: "${rutController.text}", Clave: "${claveController.text}"');
   }
 
   String _getSafeUserName() {
-    try {
-      final userData = GetStorage().read('usuario');
-      if (userData != null) {
-        final usuario = Usuario.fromJson(userData);
-        return usuario.nombre ?? "Usuario";
-      }
-    } catch (e) {
-      print('Error leyendo usuario: $e');
-    }
-    return "Usuario";
-  }  @override
-  void dispose() {
-    _animationController.dispose();
-    rutController.dispose();
-    claveController.dispose();
-    super.dispose();
-  }
-
-  void irARegistroPage() {
-    Get.toNamed('/registro');
-  }
-
-  void login() async {
-    String rut = rutController.text.trim();
-    String clave = claveController.text.trim();
-
-    if (validador(clave, rut)) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        ResponseApi responseApi = await usuariosEmpresaProvider.login(rut, clave);
-
-        print('Response Api: ${responseApi.toJson()}');
-
-        if (responseApi.success == true) {
-          GetStorage().write('usuarioempresa', responseApi.data);
-
-          final usuarioEmpresa = responseApi.data;
-          // Refactor: Si el rol es 1 va a caja del cliente, en caso contrario va al menú general
-          if (usuarioEmpresa != null && int.tryParse(usuarioEmpresa['rol'].toString()) == 1) {
-            irAHomePage();
-          } else {
-            Get.toNamed('/menugeneral');
-          }
-        } else {
-          Get.snackbar(
-            '❌ Error de Autenticación',
-            responseApi.message ?? 'Credenciales incorrectas',
-            backgroundColor: Colors.red.shade100,
-            colorText: Colors.red.shade800,
-            borderRadius: 12,
-            margin: const EdgeInsets.all(16),
-            snackPosition: SnackPosition.TOP,
-          );
-        }
-      } catch (e) {
-        Get.snackbar(
-          '⚠️ Error de Conexión',
-          'No se pudo conectar con el servidor',
-          backgroundColor: Colors.orange.shade100,
-          colorText: Colors.orange.shade800,
-          borderRadius: 12,
-          margin: const EdgeInsets.all(16),
-          snackPosition: SnackPosition.TOP,
-        );
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
+    final usuarioEmpresa = GetStorage().read('usuarioempresa');
+    if (usuarioEmpresa is Map) {
+      if (usuarioEmpresa['nombre_empresa'] != null) {
+        return usuarioEmpresa['nombre_empresa'].toString();
+      } else if (usuarioEmpresa['nombre_usuario'] != null) {
+        return usuarioEmpresa['nombre_usuario'].toString();
+      } else if (usuarioEmpresa['empresa'] != null) {
+        return usuarioEmpresa['empresa'].toString();
       }
     }
-  }
-
-  void irAHomePage() {
-    Get.offNamedUntil('/inicio/cliente/caja/create', (route) => false);
-  }
-
-  bool validador(String clave, String rut) {
-    if (rut.isEmpty) {
-      Get.snackbar(
-        '📝 Campo requerido',
-        'Debes ingresar el RUT de tu empresa o usuario',
-        backgroundColor: Colors.amber.shade100,
-        colorText: Colors.amber.shade800,
-        borderRadius: 12,
-        margin: const EdgeInsets.all(16),
-        snackPosition: SnackPosition.TOP,
-      );
-      return false;
-    }
-    if (clave.isEmpty) {
-      Get.snackbar(
-        '🔐 Campo requerido',
-        'Debes ingresar tu clave',
-        backgroundColor: Colors.amber.shade100,
-        colorText: Colors.amber.shade800,
-        borderRadius: 12,
-        margin: const EdgeInsets.all(16),
-        snackPosition: SnackPosition.TOP,
-      );
-      return false;
-    }
-    return true;
+    return '';
   }
 
   @override
@@ -237,23 +97,15 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 40),
-                    _buildWelcomeSection(),
-                    const SizedBox(height: 40),
-                    _buildLoginCard(context),
-                    const SizedBox(height: 24),
-                    _buildBackButton(),
-                  ],
-                ),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildWelcomeSection(),
+                _buildLoginCard(context),
+                _buildUsuariosButton(),
+                _buildBackButton(),
+              ],
             ),
           ),
         ),
@@ -261,26 +113,263 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
     );
   }
 
+  late AnimationController _fadeController;
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _fadeController.forward();
+  }
+
+  final UsuariosEmpresaProvider usuariosEmpresaProvider =
+      UsuariosEmpresaProvider();
+  bool _obscurePassword = true;
+  TextEditingController rutController = TextEditingController();
+  TextEditingController claveController = TextEditingController();
+  bool _isLoading = false;
+
+  void login() async {
+    // ...existing code...
+    // Solo login de usuario empresa: validar usuario/clave y navegar según rol
+    String rut = rutController.text.trim();
+    String clave = claveController.text.trim();
+
+    if (!validador(clave, rut)) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      ResponseApi responseApi = await usuariosEmpresaProvider.login(rut, clave);
+      print('🟦 ResponseApi completo: ${responseApi.toJson()}');
+      print('🟦 responseApi.data: ${responseApi.data}');
+      // 👇 Print mejorado para mostrar el JSON recibido de forma clara
+      if (responseApi.data != null) {
+        if (responseApi.data is Map) {
+          print('🟩 JSON recibido en login (formateado):');
+          (responseApi.data as Map).forEach((k, v) {
+            print('   $k: $v');
+          });
+        } else {
+          print(
+            '🟩 JSON recibido en login: ${responseApi.data.runtimeType} -> ${responseApi.data}',
+          );
+        }
+      } else {
+        print('🟥 responseApi.data es null');
+      }
+      if (responseApi.success == true) {
+        dynamic data = responseApi.data;
+        String? sessionToken;
+        final userId = GetStorage().read('usuario')?['id']?.toString();
+        UsuarioEmpresa? usuarioEmpresa;
+        if (data is List) {
+          // Si el backend retorna una lista, filtrar por id
+          final lista = data.map<UsuarioEmpresa>((e) => UsuarioEmpresa.fromJson(e as Map<String, dynamic>)).toList();
+          usuarioEmpresa = lista.firstWhereOrNull((u) => u.id == userId);
+        } else if (data is Map) {
+          sessionToken =
+              data['session_token']?.toString() ??
+              data['sessionToken']?.toString();
+          print('🟦 sessionToken extraído: ' + sessionToken.toString());
+          usuarioEmpresa = UsuarioEmpresa.fromJson(data as Map<String, dynamic>);
+        } else {
+          print('❗ data no es un Map ni List, es: \'${data.runtimeType}\'');
+        }
+        if (usuarioEmpresa != null) {
+          usuarioEmpresa.sessionToken = sessionToken;
+          GetStorage().write('usuarioempresa', usuarioEmpresa.toJson());
+          // Guardar también el usuario para POS (con local_asignado)
+          final usuarioSesion = Usuario(
+            id: usuarioEmpresa.id,
+            nombre: usuarioEmpresa.nombreUsuario,
+            rut: usuarioEmpresa.rut,
+            region: usuarioEmpresa.region,
+            comuna: usuarioEmpresa.comuna,
+            calle: usuarioEmpresa.calle,
+            numero: usuarioEmpresa.numero,
+            localOficina: usuarioEmpresa.localAsignado,
+            telefono: usuarioEmpresa.telefono,
+            clave: usuarioEmpresa.password,
+            tipoContrato: usuarioEmpresa.tipoContrato,
+            email: usuarioEmpresa.email,
+            sessionToken: sessionToken,
+            roles: [],
+          );
+          // No sobrescribir el usuario real en el storage:
+          // GetStorage().write('usuario', usuarioSesion.toJson());
+        }
+        // No sobrescribir el usuario real en el storage:
+        // GetStorage().write('usuario', usuarioSesion.toJson());
+        // print('--- DATOS GUARDADOS EN GetStorage (usuario) ---');
+        // print(usuarioSesion.toJson());
+        // print('Campo localOficina guardado: [33m${usuarioSesion.localOficina}[0m');
+        // print('Campo empresa guardado: [33m${usuarioEmpresa.empresa}[0m');
+        // print("Valor de rol recibido: '[33m${usuarioEmpresa.rol}[0m' tipo: '[33m${usuarioEmpresa.rol.runtimeType}[0m'");
+        // final rolStr = usuarioEmpresa.rol?.toString() ?? '';
+        // final rolInt = int.tryParse(usuarioEmpresa.rol?.toString() ?? '');
+        // if (rolInt == null) {
+        //   print('❗ Error: rol no es un número válido. Valor recibido: [33m${usuarioEmpresa.rol}[0m');
+        //   Get.snackbar(
+        //     '❌ Error de datos',
+        //     'El rol recibido no es válido: [33m${usuarioEmpresa.rol}[0m',
+        //     backgroundColor: Colors.red.shade100,
+        //     colorText: Colors.red.shade800,
+        //     borderRadius: 12,
+        //     margin: const EdgeInsets.all(16),
+        //     snackPosition: SnackPosition.TOP,
+        //   );
+        //   return;
+        // }
+        // Navegación según el rol recibido
+        final rolStr = usuarioEmpresa?.rol?.toString() ?? '';
+        final rolInt = int.tryParse(rolStr);
+        if (rolInt == 1) {
+          Get.toNamed('/menugeneral');
+        } else if (rolInt == 2) {
+          Get.offAll(() => VentasPage());
+        } else if (rolInt == 3) {
+          Get.toNamed('/cliente_caja_antiguo');
+        } else {
+          Get.snackbar('Rol desconocido', 'No se reconoce el rol del usuario.');
+        }
+      } else {
+        Get.snackbar(
+          '❌ Error de Autenticación',
+          responseApi.message ?? 'Credenciales incorrectas',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+          borderRadius: 12,
+          margin: const EdgeInsets.all(16),
+          snackPosition: SnackPosition.TOP,
+        );
+      }
+    } catch (e, stack) {
+      print('❗ Excepción en login usuario empresa: $e');
+      print('❗ Stacktrace: $stack');
+      Get.snackbar(
+        '⚠️ Error de Conexión',
+        'No se pudo conectar con el servidor. Detalle: $e',
+        backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade800,
+        borderRadius: 12,
+        margin: const EdgeInsets.all(16),
+        snackPosition: SnackPosition.TOP,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void irAHomePage() {
+    // Navegar a la nueva página de ventas tras login exitoso
+    Get.offAll(() => VentasPage());
+  }
+
+  bool validador(String clave, String rut) {
+    if (rut.isEmpty) {
+      Get.snackbar(
+        '📝 Campo requerido',
+        'Debes ingresar el RUT de tu empresa o usuario',
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.amber.shade800,
+        borderRadius: 12,
+        margin: const EdgeInsets.all(16),
+        snackPosition: SnackPosition.TOP,
+      );
+      return false;
+    }
+    if (clave.isEmpty) {
+      Get.snackbar(
+        '🔐 Campo requerido',
+        'Debes ingresar tu clave',
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.amber.shade800,
+        borderRadius: 12,
+        margin: const EdgeInsets.all(16),
+        snackPosition: SnackPosition.TOP,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> _mostrarDialogoClave(BuildContext context) async {
+    TextEditingController claveController = TextEditingController();
+    bool claveCorrecta = false;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Clave requerida'),
+          content: TextField(
+            controller: claveController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Ingrese la clave de acceso',
+            ),
+            autofocus: true,
+            onSubmitted: (_) {
+              if (claveController.text == 'cahi1961') {
+                claveCorrecta = true;
+                Navigator.of(context).pop();
+              } else {
+                Get.snackbar(
+                  'Clave incorrecta',
+                  'La clave ingresada no es válida.',
+                  backgroundColor: Colors.red.shade100,
+                  colorText: Colors.red.shade800,
+                  borderRadius: 12,
+                  margin: const EdgeInsets.all(16),
+                  snackPosition: SnackPosition.TOP,
+                );
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (claveController.text == 'cahi1961') {
+                  claveCorrecta = true;
+                  Navigator.of(context).pop();
+                } else {
+                  Get.snackbar(
+                    'Clave incorrecta',
+                    'La clave ingresada no es válida.',
+                    backgroundColor: Colors.red.shade100,
+                    colorText: Colors.red.shade800,
+                    borderRadius: 12,
+                    margin: const EdgeInsets.all(16),
+                    snackPosition: SnackPosition.TOP,
+                  );
+                }
+              },
+              child: const Text('Aceptar'),
+            ),
+          ],
+        );
+      },
+    );
+    return claveCorrecta;
+  }
+
   Widget _buildWelcomeSection() {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Icon(
-            Icons.business_center_rounded,
-            size: 64,
-            color: Colors.white.withOpacity(0.9),
-          ),
-        ),
-        const SizedBox(height: 24),
+        // Solo texto, icono de maletín eliminado
         Text(
           'Autenticación de Usuario',
           style: TextStyle(
@@ -297,23 +386,13 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Ingresa tus credenciales empresariales',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.white.withOpacity(0.8),
-            fontWeight: FontWeight.w400,
-          ),
-          textAlign: TextAlign.center,
-        ),
       ],
     );
   }
 
   Widget _buildLoginCard(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 0),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(24),
@@ -338,7 +417,7 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
             _buildInputField(
               controller: rutController,
               label: 'RUT o Usuario',
-              hint: 'Ingresa tu RUT empresarial',
+              hint: 'Ingresa tu RUT ',
               icon: Icons.badge_outlined,
               keyboardType: TextInputType.text,
             ),
@@ -383,10 +462,7 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
           decoration: BoxDecoration(
             color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.grey.shade200,
-              width: 1,
-            ),
+            border: Border.all(color: Colors.grey.shade200, width: 1),
           ),
           child: TextField(
             controller: controller,
@@ -395,10 +471,7 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
             autocorrect: false,
             enableSuggestions: false,
             autofillHints: null,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
@@ -411,11 +484,7 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
                   color: Colors.blue.shade100,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.blue.shade600,
-                  size: 20,
-                ),
+                child: Icon(icon, color: Colors.blue.shade600, size: 20),
               ),
               suffixIcon: isPassword
                   ? IconButton(
@@ -449,10 +518,7 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
       height: 56,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.blue.shade600,
-            Colors.indigo.shade600,
-          ],
+          colors: [Colors.blue.shade600, Colors.indigo.shade600],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -484,11 +550,7 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
             : const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.login_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+                  Icon(Icons.login_rounded, color: Colors.white, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'ACCEDER',
@@ -528,10 +590,7 @@ class _MenuInicioPageState extends State<MenuInicioPage> with TickerProviderStat
         backgroundColor: Colors.white.withOpacity(0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: Colors.white.withOpacity(0.2),
-            width: 1,
-          ),
+          side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
         ),
       ),
     );

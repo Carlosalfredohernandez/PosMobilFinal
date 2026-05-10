@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/environment/environment.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/models/usuario_empresa.dart';
+import 'package:posmobilfinal/src/environment/environment.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/models/usuario_empresa.dart';
 
 class UsuariosEmpresaProvider extends GetConnect{
   String url = '${Environment.API_URL}api/usuariosempresa';
@@ -20,8 +20,9 @@ class UsuariosEmpresaProvider extends GetConnect{
     ResponseApi responseApi =ResponseApi.fromJson(response.body);
     return responseApi;
   }
-  Future<List<UsuarioEmpresa>> findUsers() async {
-    var id = userSession.id;
+  Future<List<UsuarioEmpresa>> findUsers([String? empresaId]) async {
+    // Si se pasa empresaId, usarlo, si no usar el id de sesión
+    var id = empresaId ?? userSession.id;
     Response response = await get(
         '$url/findUsers/$id',
         headers: {
@@ -43,23 +44,42 @@ class UsuariosEmpresaProvider extends GetConnect{
   Future<ResponseApi> login(String rut, String clave) async{
 
     Response response = await post(
-        '$url/login',
-        {
-          'rut': rut,
-          'clave': clave
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      '$url/login',
+      {
+        'rut': rut,
+        'clave': clave
+      },
+      headers: {
+        'Content-Type': 'application/json'
+      }
     );
 
-    if(response.body == null){
-      Get.snackbar('Error: ', 'No se pudo ejecutar la peticion');
+    if (response.body == null) {
+      Get.snackbar('Error: ', 'No se pudo ejecutar la petición');
       return ResponseApi();
     }
 
-    ResponseApi responseApi =ResponseApi.fromJson(response.body);
-    return responseApi;
+    // Aceptar tanto 200 como 201 como éxito
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      // Si el backend responde con el formato esperado para ResponseApi
+      if (response.body is Map && response.body.containsKey('success')) {
+        return ResponseApi.fromJson(response.body);
+      } else {
+        // Si el backend responde solo con los datos del usuario/empresa
+        return ResponseApi(
+          success: true,
+          message: 'Login exitoso',
+          data: response.body,
+        );
+      }
+    } else {
+      // Otros códigos de estado
+      String msg = response.body is Map && response.body['message'] != null
+          ? response.body['message']
+          : 'Error de conexión o credenciales';
+      Get.snackbar('Error', msg);
+      return ResponseApi(success: false, message: msg);
+    }
   }
 
   Future<ResponseApi> update(UsuarioEmpresa usuario, var idRol, var local) async {

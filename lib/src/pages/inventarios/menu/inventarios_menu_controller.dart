@@ -7,7 +7,7 @@ class InventariosMenuController extends GetxController{
     Get.toNamed('/inventarios/create');
   }
   void goToVista() {
-    Get.toNamed('/inventarios/vista');
+    Get.toNamed('/inventarios/vista', arguments: {'id': ''});
   }
   void goToInformes() {
     Get.toNamed('/inventarios/informes');

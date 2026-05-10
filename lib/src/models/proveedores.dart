@@ -46,12 +46,12 @@ class Proveedor {
   }
 
   Map<String, dynamic> toJson() => {
-    "id": id,
+    "id": id != null ? int.tryParse(id!) : null,
     "nombre": nombre,
     "telefono": telefono,
     "email": email,
     "direccion": direccion,
-    "contrato": contrato,
+    "contrato": (contrato == null || contrato!.isEmpty) ? "SI" : contrato,
     "id_usuario": idUsuario,
   };
 }

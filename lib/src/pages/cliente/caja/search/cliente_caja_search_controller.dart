@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:posmobil/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/providers/productos_provider.dart' as prov;
+import 'package:posmobilfinal/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/providers/productos_provider.dart' as prov;
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 

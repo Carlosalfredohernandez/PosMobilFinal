@@ -1,10 +1,10 @@
 // controllers/cliente_caja_create_controller_dual.dart
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/providers/productos_provider.dart';
-import 'package:posmobil/src/providers/categorias_provider.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/providers/productos_provider.dart';
+import 'package:posmobilfinal/src/providers/categorias_provider.dart';
 // import 'package:posmobil/src/services/dual_pos_service.dart'; // ❌ ELIMINADO - Ya no necesario
 import 'package:get_storage/get_storage.dart';
 

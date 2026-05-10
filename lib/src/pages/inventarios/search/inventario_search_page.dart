@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/producto.dart';
-import 'package:posmobil/src/pages/inventarios/search/inventario_search_controller.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/src/pages/inventarios/search/inventario_search_controller.dart';
 
 class InventarioSearchPage extends SearchDelegate<Producto> {
   late InventarioSearchController controlador;

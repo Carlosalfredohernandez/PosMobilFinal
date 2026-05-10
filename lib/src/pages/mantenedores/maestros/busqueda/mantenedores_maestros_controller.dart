@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/usuario.dart';
-import 'package:posmobil/src/models/usuario_empresa.dart';
-import 'package:posmobil/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_page.dart';
-import 'package:posmobil/src/providers/usuarios_empresa_provider.dart';
+import 'package:posmobilfinal/src/models/usuario.dart';
+import 'package:posmobilfinal/src/models/usuario_empresa.dart';
+import 'package:posmobilfinal/src/pages/mantenedores/maestros/ventana/mantenedores_maestros_usuarios_page.dart';
+import 'package:posmobilfinal/src/providers/usuarios_empresa_provider.dart';
 
 
 class MantenedoresMaestrosController extends GetxController{

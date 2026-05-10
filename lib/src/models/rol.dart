@@ -1,23 +1,23 @@
 import 'dart:convert';
 
-rol rolFromJson(String str) => rol.fromJson(json.decode(str));
+Rol rolFromJson(String str) => Rol.fromJson(json.decode(str));
 
-String rolToJson(rol data) => json.encode(data.toJson());
+String rolToJson(Rol data) => json.encode(data.toJson());
 
-class rol {
+class Rol {
 
   String? id;
   String? nombre;
   String? ruta;
 
-  rol({
+  Rol({
     this.id,
     this.nombre,
     this.ruta,
   });
 
 
-  factory rol.fromJson(Map<String, dynamic> json) => rol(
+  factory Rol.fromJson(Map<String, dynamic> json) => Rol(
     id: json["id"],
     nombre: json["nombre"],
     ruta: json["ruta"],

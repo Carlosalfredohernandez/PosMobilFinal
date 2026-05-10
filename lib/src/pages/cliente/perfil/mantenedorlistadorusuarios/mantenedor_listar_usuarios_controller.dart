@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/local.dart';
-import 'package:posmobil/src/models/response_api.dart';
-import 'package:posmobil/src/models/usuario_empresa.dart';
-import 'package:posmobil/src/providers/local_provider.dart';
-import 'package:posmobil/src/providers/usuarios_empresa_provider.dart';
+import 'package:posmobilfinal/src/models/local.dart';
+import 'package:posmobilfinal/src/models/response_api.dart';
+import 'package:posmobilfinal/src/models/usuario_empresa.dart';
+import 'package:posmobilfinal/src/providers/local_provider.dart';
+import 'package:posmobilfinal/src/providers/usuarios_empresa_provider.dart';
 
 class UsuarioEmpresaController extends GetxController {
   var usuarios = <UsuarioEmpresa>[].obs;

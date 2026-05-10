@@ -21,9 +21,10 @@ class _MenuGeneralPageModernState extends State<MenuGeneralPageModern>
 
   final List<MenuItem> menuItems = [
     MenuItem('PRODUCTOS', Icons.inventory_2_rounded, Colors.green.shade600, Colors.green.shade800),
+    MenuItem('CATEGORÍAS', Icons.category_rounded, Colors.teal.shade600, Colors.teal.shade800),
     MenuItem('USUARIOS', Icons.people_rounded, Colors.orange.shade600, Colors.orange.shade800),
     MenuItem('LOCALES', Icons.store_rounded, Colors.purple.shade600, Colors.purple.shade800),
-    MenuItem('BODEGA', Icons.warehouse_rounded, Colors.red.shade600, Colors.red.shade800),
+    MenuItem('PROVEEDORES', Icons.warehouse_rounded, Colors.red.shade600, Colors.red.shade800),
     MenuItem('INFORMES VENTAS', Icons.analytics_rounded, Colors.amber.shade600, Colors.amber.shade800),
     MenuItem('ESTADÍSTICAS', Icons.bar_chart_rounded, Colors.cyan.shade600, Colors.cyan.shade800),
     MenuItem('INVENTARIOS', Icons.inventory_rounded, Colors.blue.shade600, Colors.blue.shade800),
@@ -206,14 +207,19 @@ class _MenuGeneralPageModernState extends State<MenuGeneralPageModern>
   }
 
   Widget _buildMenuGrid() {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount = width < 500 ? 2 : 3;
+    final aspectRatio = width < 400 ? 0.95 : (width < 600 ? 1.1 : 1.3);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.2,
+        shrinkWrap: true,
+        physics: const BouncingScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: aspectRatio,
         ),
         itemCount: menuItems.length,
         itemBuilder: (context, index) {
@@ -260,29 +266,29 @@ class _MenuGeneralPageModernState extends State<MenuGeneralPageModern>
           borderRadius: BorderRadius.circular(20),
           onTap: () => _handleMenuTap(index),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(22), // icono más grande
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
                     item.icon,
-                    size: 32,
+                    size: 48, // icono más grande
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Text(
                   item.title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -359,21 +365,24 @@ class _MenuGeneralPageModernState extends State<MenuGeneralPageModern>
         controlador.goToProduct();
         break;
       case 1:
-        controlador.goToUser();
+        controlador.goToCategory();
         break;
       case 2:
-        controlador.goToLocal();
+        controlador.goToUser();
         break;
       case 3:
-        controlador.goToBodega();
+        controlador.goToLocal();
         break;
       case 4:
-        controlador.goToinformesventas();
+        controlador.goToBodega();
         break;
       case 5:
-        controlador.goToEstadisticas();
+        controlador.goToinformesventas();
         break;
       case 6:
+        controlador.goToEstadisticas();
+        break;
+      case 7:
         controlador.goToInventarios();
         break;
     }

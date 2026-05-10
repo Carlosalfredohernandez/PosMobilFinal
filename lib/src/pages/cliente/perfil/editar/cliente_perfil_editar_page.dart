@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:posmobil/src/pages/cliente/perfil/editar/cliente_perfil_editar_controller.dart';
+import 'package:posmobilfinal/src/pages/cliente/perfil/editar/cliente_perfil_editar_controller.dart';
 
 class ClientePerfilEditarPage extends StatelessWidget {
 

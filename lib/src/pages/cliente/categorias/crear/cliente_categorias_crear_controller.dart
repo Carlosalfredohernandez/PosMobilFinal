@@ -27,33 +27,40 @@ class ClienteCategoriasCrearController extends GetxController {
   }
 
   void createCategory() async {
-
     String usuario = sesionUsuario.id.toString();
-    String nombreCategoria = nombreController.text;
+    String nombreCategoria = nombreController.text.trim();
     print('Usuario: $usuario');
     print('Nombre: $nombreCategoria');
 
     if (usuario.isNotEmpty && nombreCategoria.isNotEmpty) {
+      // Validar que no exista ya una categoría con ese nombre (case-insensitive)
+      bool existe = categorias.any((cat) => cat.nombreCategoria?.toLowerCase() == nombreCategoria.toLowerCase());
+      if (existe) {
+        Get.snackbar('Categoría duplicada', 'Ya existe una categoría con ese nombre');
+        return;
+      }
       Categoria categoria = Categoria(
         usuario: usuario,
         nombreCategoria: nombreCategoria
       );
 
-      ResponseApi responseApi = await categoriasProvider.create(categoria);
-      Get.snackbar('Proceso terminado', responseApi.message ?? '');
+      try {
+        ResponseApi responseApi = await categoriasProvider.create(categoria);
+        Get.snackbar('Proceso terminado', responseApi.message ?? '');
 
-      if (responseApi.success == true) {
-        clearForm();
-        getCategorias();
-        Get.offNamedUntil('/inicio/cliente', (route) => false);
+        if (responseApi.success == true) {
+          clearForm();
+          getCategorias();
+          Future.delayed(const Duration(milliseconds: 300), () {
+            Get.back(); // Volver solo una pantalla atrás, más seguro
+          });
+        }
+      } catch (e) {
+        Get.snackbar('Error', 'Ocurrió un error al crear la categoría');
       }
-
-    }
-    else {
+    } else {
       Get.snackbar('Formulario no valido', 'Ingresa todos los campos para crear la categoria');
     }
-    getCategorias();
-
   }
 
   void clearForm() {

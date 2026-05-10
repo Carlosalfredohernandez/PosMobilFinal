@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:posmobil/src/models/producto.dart';
+import 'package:posmobilfinal/src/models/producto.dart';
 
 Inventario inventarioFromJson(String str) => Inventario.fromJson(json.decode(str));
 
@@ -44,14 +44,50 @@ class Inventario {
     fecha: json["fecha"],
     idUsuarioE: json["id_usuarioE"],
     codigoProducto: json["codigo_producto"],
-    cantidad: json["cantidad"],
-    valor: json["valor"],
+    cantidad: (() {
+      final dynamic val = json["cantidad"];
+      if (val == null) return null;
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      if (val is String) {
+        final parsed = int.tryParse(val);
+        if (parsed != null) return parsed;
+        final parsedDouble = double.tryParse(val);
+        if (parsedDouble != null) return parsedDouble.toInt();
+      }
+      return null;
+    })(),
+    valor: (() {
+      final dynamic val = json["valor"];
+      if (val == null) return null;
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      if (val is String) {
+        final parsed = int.tryParse(val);
+        if (parsed != null) return parsed;
+        final parsedDouble = double.tryParse(val);
+        if (parsedDouble != null) return parsedDouble.toInt();
+      }
+      return null;
+    })(),
     idProvedor: json["id_provedor"],
     observacion: json["observacion"],
     tipoMovimiento: json["tipo_movimiento"],
     productos: json["productos"],
-    local: json["local"],
-    nroDocumento: json["nro_documento"],
+    local: (() {
+      final dynamic val = json["local"];
+      if (val == null) return null;
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      if (val is String) {
+        final parsed = int.tryParse(val);
+        if (parsed != null) return parsed;
+        final parsedDouble = double.tryParse(val);
+        if (parsedDouble != null) return parsedDouble.toInt();
+      }
+      return null;
+    })(),
+    nroDocumento: json["numero_documento"],
   );
 
   static List<Inventario> fromJsonList(List<dynamic> jsonList) {
@@ -78,6 +114,6 @@ class Inventario {
     "tipo_movimiento": tipoMovimiento,
     "productos": productos,
     "local": local,
-    "nro_documento": nroDocumento,
+    "numero_documento": nroDocumento,
   };
 }

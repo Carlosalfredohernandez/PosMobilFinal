@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:posmobil/src/models/boleta.dart';
-import 'package:posmobil/src/providers/boletas_provider.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/providers/boletas_provider.dart';
 
 class InformesVentasController extends GetxController{
   BoletasProvider boletasProvider = BoletasProvider();
