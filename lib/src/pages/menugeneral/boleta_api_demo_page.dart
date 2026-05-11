@@ -4,6 +4,7 @@ import '../../providers/boleta_provider.dart';
 import 'boleta_pdf_pos_page.dart';
 import 'package:get/get.dart';
 import 'package:xml/xml.dart' as xml;
+import '../../../utils/boleta_xml_parser.dart';
 
 class BoletaApiDemoPage extends StatefulWidget {
   const BoletaApiDemoPage({super.key});
@@ -105,61 +106,11 @@ class _BoletaApiDemoPageState extends State<BoletaApiDemoPage> {
       return;
     }
 
-    // 2. Parsear el XML a un mapa de datos (requiere paquete xml: ^6.6.1)
-    final xmlDoc = xml.XmlDocument.parse(xmlString);
-    // Extraer datos del emisor
-    final emisorNode = xmlDoc.findAllElements('Emisor').isNotEmpty ? xmlDoc.findAllElements('Emisor').first : null;
-    final emisor = emisorNode?.getElement('RUTEmisor')?.text ?? '';
-    final razonSocial = emisorNode?.getElement('RznSocEmisor')?.text ?? '';
-    final giro = emisorNode?.getElement('GiroEmisor')?.text ?? '';
-    final direccion = emisorNode?.getElement('DirOrigen')?.text ?? '';
-    final receptor = xmlDoc.findAllElements('Receptor').isNotEmpty ? xmlDoc.findAllElements('Receptor').first.getAttribute('RUTRecep') ?? '' : '';
-    final nombreReceptor = xmlDoc.findAllElements('Receptor').isNotEmpty ? xmlDoc.findAllElements('Receptor').first.getAttribute('RznSocRecep') ?? '' : '';
-    final folio = xmlDoc.findAllElements('IdDoc').isNotEmpty ? xmlDoc.findAllElements('IdDoc').first.getElement('Folio')?.text ?? '' : '';
-    final total = int.tryParse(xmlDoc.findAllElements('Totales').isNotEmpty ? xmlDoc.findAllElements('Totales').first.getElement('MntTotal')?.text ?? '0' : '0') ?? 0;
-
-    // Extraer IVA real del XML si existe
-    int iva = 0;
-    final totalesNode = xmlDoc.findAllElements('Totales').isNotEmpty ? xmlDoc.findAllElements('Totales').first : null;
-    if (totalesNode != null && totalesNode.getElement('IVA') != null) {
-      iva = int.tryParse(totalesNode.getElement('IVA')?.text ?? '0') ?? 0;
-    } else {
-      iva = (total - (total / 1.19)).round();
-    }
-
-    // Detalle de productos
-    final detalles = xmlDoc.findAllElements('Detalle').map((d) => {
-      'nombre': d.getElement('NmbItem')?.text ?? '',
-      'cantidad': double.tryParse(d.getElement('QtyItem')?.text ?? '1')?.toInt() ?? 1,
-      'precio': double.tryParse(d.getElement('PrcItem')?.text ?? '0')?.toInt() ?? 0,
-      'monto': int.tryParse(d.getElement('MontoItem')?.text ?? '0') ?? 0,
-    }).toList();
-
-    // TED (timbre electrónico)
-    final tedNode = xmlDoc.findAllElements('TED').isNotEmpty ? xmlDoc.findAllElements('TED').first : null;
-    final ted = tedNode != null ? tedNode.toXmlString(pretty: true) : '';
-    final tedDD = tedNode != null && tedNode.findElements('DD').isNotEmpty ? tedNode.findElements('DD').first.text : '';
-
-    // 3. Armar el mapa para el PDF
-    final Map<String, dynamic> boleta = {
-      'folio': folio,
-      'emisor': emisor, // para compatibilidad
-      'rut_emisor': emisor, // para el PDF
-      'razon_social': razonSocial,
-      'giro': giro,
-      'direccion': direccion,
-      'receptor': {
-        'rut': receptor,
-        'razon': nombreReceptor,
-      },
-      'detalle': detalles,
-      'total': total,
-      'iva': iva,
-      'ted': ted,
-      'ted_dd': tedDD,
-      // ...otros campos que quieras extraer...
-    };
-
+    // 2. Usar el parser centralizado para extraer todos los datos relevantes del XML
+    final boleta = parseBoletaXml(xmlString);
+    // Debug: mostrar el mapa boleta en consola
+    print('DEBUG boleta para PDF:');
+    print(boleta);
     setState(() { _loading = false; });
     _mostrarPdfPosDesdeMapa(boleta);
   }

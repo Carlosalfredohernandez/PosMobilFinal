@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 import '../../../utils/boleta_pdf_pos.dart';
 import 'package:get/get.dart';
+import '../../../utils/boleta_xml_parser.dart';
 
 class BoletaPdfPosPage extends StatefulWidget {
   const BoletaPdfPosPage({super.key});
@@ -24,19 +25,38 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
   }
 
   Future<void> _generarPdfYMostrar() async {
-    final boleta = Get.arguments as Map<String, dynamic>?;
-    if (boleta == null) {
+    final arguments = Get.arguments as Map<String, dynamic>?;
+    if (arguments == null) {
       setState(() { _loading = false; });
       return;
     }
-    final dir = await getTemporaryDirectory();
-    final outputPath = '${dir.path}/boleta_pos_demo.pdf';
-    await BoletaPdfPosGenerator.generarPdfDesdeMapa(boleta, outputPath);
-    setState(() {
-      _pdfPath = outputPath;
-      _pdfController = PdfController(document: PdfDocument.openFile(outputPath));
-      _loading = false;
-    });
+    try {
+      final dir = await getTemporaryDirectory();
+      final folio = arguments['folio'] ?? 'BOLETA';
+      final outputPath = '${dir.path}/boleta_dte_$folio.pdf';
+      // Si viene XML string, usar el parser para extraer los datos correctos
+      final boleta = arguments['xml_string'] != null
+          ? parseBoletaXml(arguments['xml_string'])
+          : arguments;
+      print('DEBUG boleta_pdf_pos_page.dart: boleta =');
+      print(boleta);
+      await BoletaPdfPosGenerator.generarPdfDesdeMapa(boleta, outputPath);
+      setState(() {
+        _pdfPath = outputPath;
+        _pdfController = PdfController(
+          document: PdfDocument.openFile(outputPath),
+        );
+        _loading = false;
+      });
+    } catch (e) {
+      print('❌ Error generando PDF: $e');
+      setState(() { _loading = false; });
+      Get.snackbar(
+        '❌ Error',
+        'No se pudo generar el PDF: $e',
+        duration: Duration(seconds: 3),
+      );
+    }
   }
 
   @override

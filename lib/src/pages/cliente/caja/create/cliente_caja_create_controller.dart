@@ -18,11 +18,11 @@ import 'package:xml/xml.dart';
 
 /// 🎮 CONTROLADOR PRINCIPAL DEL POS
 class ClienteCajaCreateController extends GetxController {
-  /// Emite boleta SII usando la API y guarda el XML real
+  /// Emite boleta SII usando la API y guarda el XML real y el ID para el PDF
   Future<void> emitirBoletaSii({required BuildContext context}) async {
     isLoading.value = true;
     try {
-      // Construir datos mínimos para la API (puedes adaptar según tu modelo)
+      // Construir datos para la API del SII
       final boletaData = {
         'emisor': sesionUsuario.rut ?? '99999999-9',
         'receptor': {
@@ -42,27 +42,37 @@ class ClienteCajaCreateController extends GetxController {
         'total': total.value.toInt(),
         'api_key': 'Vikingo80',
       };
+
+      print('📤 Enviando boleta al SII...');
       final boletaProvider = BoletaProvider();
       final boletaId = await boletaProvider.generarBoleta(boletaData);
       if (boletaId == null) {
-        Get.snackbar('Error', 'No se pudo generar la boleta SII');
+        Get.snackbar('❌ Error', 'No se pudo generar la boleta SII');
         return;
       }
+      print('✅ Boleta generada con ID: $boletaId');
+      // Obtener XML del DTE autorizado
       final xml = await boletaProvider.obtenerXmlBoleta(boletaId);
       if (xml == null || xml.isEmpty) {
-        Get.snackbar('Error', 'No se pudo obtener el XML de la boleta');
+        Get.snackbar('❌ Error', 'No se pudo obtener el XML de la boleta');
         return;
       }
+      print('✅ XML recibido del SII');
       dteXmlString = xml;
       dteXmlDocument = XmlDocument.parse(xml);
-      Get.snackbar('Éxito', 'Boleta SII emitida y XML recibido');
+      dteBoletaId = boletaId;
+      Get.snackbar('✅ Éxito', 'Boleta SII emitida y autorizada');
       update();
     } catch (e) {
-      Get.snackbar('Error', 'Error emitiendo boleta SII: $e');
+      print('❌ Error emitiendo boleta SII: $e');
+      Get.snackbar('❌ Error', 'Error emitiendo boleta SII: $e');
     } finally {
       isLoading.value = false;
     }
   }
+
+  /// Variable para guardar el ID de la boleta emitida
+  String? dteBoletaId;
 
 
 

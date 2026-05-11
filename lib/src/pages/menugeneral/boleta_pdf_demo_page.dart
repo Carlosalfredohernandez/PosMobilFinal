@@ -1,6 +1,3 @@
-// AVISO: Esta página está obsoleta y solo se deja como referencia histórica.
-// TODO: No usar en desarrollo nuevo. Puede ser eliminada en el futuro.
-/*
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,7 +5,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdfx/pdfx.dart';
 import 'package:get/get.dart';
 
-import '../../../utils/boleta_pdf.dart';
+import '../../../utils/boleta_pdf_pos.dart';
+import '../../../utils/boleta_xml_parser.dart';
 
 
 class BoletaPdfDemoPage extends StatefulWidget {
@@ -82,23 +80,20 @@ class _BoletaPdfDemoPageState extends State<BoletaPdfDemoPage> {
   }
 
   Future<void> _generarPdfYMostrar() async {
-    // Permitir recibir XML real por argumentos Get
     final String? xmlArg = Get.arguments is String ? Get.arguments as String : null;
     print('XML recibido en PDF:');
     print(xmlArg);
-    // Mostrar el XML completo en consola para verificar los ítems
     if (xmlArg != null) {
       print('--- XML COMPLETO ---');
       print(xmlArg);
       print('--------------------');
     }
     try {
-      final data = BoletaPdfGenerator.parseBoletaXml(xmlArg ?? xmlEjemplo);
-      print('Datos parseados del XML:');
-      print(data);
       final dir = await getTemporaryDirectory();
       final outputPath = '${dir.path}/boleta_demo.pdf';
-      await BoletaPdfGenerator.generarPdf(data, outputPath);
+      // Parsear el XML real para extraer los productos y datos
+      final boletaMapa = parseBoletaXml(xmlArg ?? xmlEjemplo);
+      await BoletaPdfPosGenerator.generarPdfDesdeMapa(boletaMapa, outputPath);
       print('PDF generado en: $outputPath');
       setState(() {
         _pdfPath = outputPath;
@@ -106,12 +101,11 @@ class _BoletaPdfDemoPageState extends State<BoletaPdfDemoPage> {
         _loading = false;
       });
     } catch (e, stack) {
-      print('Error generando PDF: $e');
+      print('❌ Error generando PDF: $e');
       print(stack);
       setState(() {
         _loading = false;
       });
-      // Opcional: muestra un dialog con el error
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
           context: context,
@@ -156,4 +150,3 @@ class _BoletaPdfDemoPageState extends State<BoletaPdfDemoPage> {
     );
   }
 }
-*/

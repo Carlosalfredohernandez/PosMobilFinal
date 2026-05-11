@@ -209,11 +209,11 @@ class _MyAppState extends State<MyApp> {
         ),
 
         // Demo generación PDF de boleta
-        // GetPage(
-        //   name: '/boleta_pdf_demo',
-        //   page: () => BoletaPdfDemoPage(),
-        //   transition: Transition.rightToLeft,
-        // ),
+        GetPage(
+          name: '/boleta_pdf_demo',
+          page: () => BoletaPdfDemoPage(),
+          transition: Transition.rightToLeft,
+        ),
         GetPage(
           name: '/boleta_api_demo',
           page: () => const BoletaApiDemoPage(),

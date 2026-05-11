@@ -94,7 +94,7 @@ class BoletaPdfPosGenerator {
                       pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
                     ],
                   ),
-                  ...((boleta['detalle'] as List).map<pw.TableRow>((item) => pw.TableRow(
+                  ...((boleta['detalle'] as List? ?? []).map<pw.TableRow>((item) => pw.TableRow(
                     children: [
                       pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text('${item['cantidad']}')),
                       pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text('${item['nombre']}')),

@@ -240,8 +240,15 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                             await controlador.emitirBoletaSii(context: context);
                             // Si se generó el XML, mostrar el PDF automáticamente y cerrar el diálogo
                             if ((controlador.dteXmlString ?? '').isNotEmpty) {
+                              // Debug: mostrar el XML y el folio antes de navegar al PDF
+                              print('DEBUG flujo principal: folio = \\${controlador.dteBoletaId}');
+                              print('DEBUG flujo principal: xml_string =');
+                              print(controlador.dteXmlString);
                               Navigator.of(context).pop(); // Cierra el diálogo primero
-                              await Get.toNamed('/boleta_pdf_demo', arguments: controlador.dteXmlString ?? '');
+                              await Get.toNamed('/boleta_pdf_pos', arguments: {
+                                'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
+                                'xml_string': controlador.dteXmlString ?? '',
+                              });
                             }
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
