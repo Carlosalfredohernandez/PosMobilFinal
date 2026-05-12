@@ -1,3 +1,33 @@
+import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
+  // Prueba rápida con esc_pos_bluetooth
+  void imprimirPruebaEscPos() async {
+    final printerManager = PrinterBluetoothManager();
+
+    printerManager.startScan(Duration(seconds: 4));
+    printerManager.scanResults.listen((devices) async {
+      if (devices.isNotEmpty) {
+        final PrinterBluetooth printer = devices.first;
+        printerManager.selectPrinter(printer);
+
+        final profile = await CapabilityProfile.load();
+        final generator = Generator(PaperSize.mm58, profile);
+        final ticket = <int>[];
+        ticket.addAll(generator.text(
+          'Prueba ESC POS',
+          styles: const PosStyles(align: PosAlign.center, bold: true),
+          linesAfter: 1,
+        ));
+        ticket.addAll(generator.feed(3));
+        ticket.addAll(generator.cut());
+
+        await printerManager.printTicket(profile, ticket);
+        Get.snackbar('ESC/POS', 'Ticket de prueba enviado a la primera impresora encontrada');
+      } else {
+        Get.snackbar('ESC/POS', 'No se encontraron impresoras Bluetooth');
+      }
+    });
+  }
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -8,6 +38,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:blue_thermal_printer/blue_thermal_printer.dart';
+import 'package:get_storage/get_storage.dart';
 
 class ClienteCajaCreatePage extends StatefulWidget {
 
@@ -18,6 +50,9 @@ class ClienteCajaCreatePage extends StatefulWidget {
 class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
   // Asegura que el controlador esté inicializado
   late final ClienteCajaCreateController controlador;
+  final BlueThermalPrinter _bluetooth = BlueThermalPrinter.instance;
+  final GetStorage _storage = GetStorage();
+  Map<String, dynamic>? _boletaData;
   // Función para generar el PDF de la boleta con firma SII simulada
   Future<void> _generarYMostrarBoletaPDF(BuildContext context) async {
     final pdf = pw.Document();
@@ -55,9 +90,82 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
         },
       ),
     );
+    // Datos reales de boleta para impresión Bluetooth
+    _boletaData = {
+      'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
+      'rut_emisor': '76.123.456-7',
+      'razon_social': 'Empresa de Ejemplo SpA',
+      'total': controlador.total.value,
+      'detalle': controlador.selectedProducts.map((p) => {
+        'nombre': p.nombreProducto ?? '',
+        'cantidad': p.cantidad ?? 1,
+        'monto': int.tryParse(p.precioVenta ?? '0') != null ? (int.parse(p.precioVenta!) * (p.cantidad ?? 1)) : 0,
+      }).toList(),
+      'ted_dd': controlador.dteXmlString ?? '',
+    };
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
+  }
+
+  Future<void> _imprimirBluetooth() async {
+    try {
+      if (_boletaData == null) {
+        Get.snackbar('Impresión', 'No hay datos de boleta para imprimir');
+        return;
+      }
+      final impresoraGuardada = _storage.read('impresora');
+      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+        Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+        return;
+      }
+      final String address = impresoraGuardada['address'].toString();
+      final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
+      BluetoothDevice? device;
+      for (final d in bonded) {
+        if (d.address == address) {
+          device = d;
+          break;
+        }
+      }
+      if (device == null) {
+        Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+        return;
+      }
+      final bool? conectado = await _bluetooth.isConnected;
+      if (conectado != true) {
+        await _bluetooth.connect(device);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+      final boleta = _boletaData!;
+      final detalle = (boleta['detalle'] as List?) ?? [];
+      await _bluetooth.printCustom('BOLETA ELECTRONICA', 2, 1);
+      await _bluetooth.printCustom('Folio: ${boleta['folio'] ?? ''}', 1, 1);
+      await _bluetooth.printCustom('RUT: ${boleta['rut_emisor'] ?? ''}', 1, 0);
+      await _bluetooth.printCustom('${boleta['razon_social'] ?? ''}', 1, 0);
+      await _bluetooth.printNewLine();
+      for (final item in detalle) {
+        final nombre = (item['nombre'] ?? '').toString();
+        final cantidad = (item['cantidad'] ?? 1).toString();
+        final monto = (item['monto'] ?? 0).toString();
+        await _bluetooth.printCustom('$cantidad x $nombre', 0, 0);
+        await _bluetooth.printCustom('[ S/ $monto', 0, 2);
+      }
+      await _bluetooth.printNewLine();
+      await _bluetooth.printCustom('TOTAL: ${boleta['total'] ?? 0}', 2, 2);
+      await _bluetooth.printNewLine();
+      await _bluetooth.printCustom('Timbre Electronico SII', 0, 1);
+      await _bluetooth.printCustom('Gracias por su compra', 1, 1);
+      // Agregar varias líneas en blanco para forzar el feed
+      for (int i = 0; i < 6; i++) {
+        await _bluetooth.printNewLine();
+      }
+      // Enviar comando de corte de papel si la impresora lo soporta (algunas lo ignoran)
+      // await _bluetooth.writeBytes([0x1D, 0x56, 0x00]); // ESC/POS cut
+      Get.snackbar('Impresión', 'Boleta enviada a impresora Bluetooth');
+    } catch (e) {
+      Get.snackbar('Error de impresión', e.toString());
+    }
   }
     final GetStorage storage = GetStorage();
 
@@ -85,67 +193,81 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
   @override
   Widget build(BuildContext context) {
     print('🟦 ClienteCajaCreatePage: build ejecutado');
-      return WillPopScope(
-        onWillPop: () async {
-          controlador.limpiarCarrito();
-          controlador.codigoBarraController.clear();
-          return true;
-        },
-        child: Obx(() {
-          if (controlador.isLoading.value) {
-            return Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
+    return WillPopScope(
+      onWillPop: () async {
+        controlador.limpiarCarrito();
+        controlador.codigoBarraController.clear();
+        return true;
+      },
+      child: Obx(() {
+        if (controlador.isLoading.value) {
           return Scaffold(
-            bottomNavigationBar: Container(
-              decoration: BoxDecoration(
-                color: Color.fromRGBO(245, 245, 245, 1),
-              ),
-              height: 100,
-              child: _totalToPay(context),
-            ),
-                appBar: PreferredSize(
-                  preferredSize: Size.fromHeight(60),
-                  child: AppBar(
-                    automaticallyImplyLeading: false, // No mostrar la flecha automática
-                    leading: IconButton(
-                      icon: Icon(Icons.arrow_back),
-                      tooltip: 'Volver al menú general',
-                      onPressed: () {
-                        controlador.limpiarCarrito();
-                        controlador.codigoBarraController.clear();
-                        Get.toNamed('/menugeneral');
-                      },
-                    ),
-                    title: Row(
-                      children: [
-                        Expanded(child: _campoCodigoBarra(context)),
-                      ],
-                    ),
-                    actions: [
-                      _iconSearch(context),
-                      _iconScan(),
-                    ],
-                  ),
-                ),
-            resizeToAvoidBottomInset: true,
-            body: Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: controlador.selectedProducts.length > 0
-                  ? ListView.builder(
-                      padding: EdgeInsets.only(top: 8),
-                      itemCount: controlador.selectedProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = controlador.selectedProducts[index];
-                        return _cardProduct(product);
-                      },
-                    )
-                  : Center(child: Text('No hay ningun producto agregado aun')),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
-        }),
-      );
+        }
+        return Scaffold(
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Color.fromRGBO(245, 245, 245, 1),
+            ),
+            height: 100,
+            child: _totalToPay(context),
+          ),
+          appBar: PreferredSize(
+            preferredSize: Size.fromHeight(60),
+            child: AppBar(
+              automaticallyImplyLeading: false, // No mostrar la flecha automática
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back),
+                tooltip: 'Volver al menú general',
+                onPressed: () {
+                  controlador.limpiarCarrito();
+                  controlador.codigoBarraController.clear();
+                  Get.toNamed('/menugeneral');
+                },
+              ),
+              title: Row(
+                children: [
+                  Expanded(child: _campoCodigoBarra(context)),
+                ],
+              ),
+              actions: [
+                _iconSearch(context),
+                _iconScan(),
+                IconButton(
+                  icon: Icon(Icons.settings_bluetooth),
+                  tooltip: 'Configurar impresora',
+                  onPressed: () async {
+                    await Get.toNamed('/configuraciones/impresora');
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.scanner),
+                  tooltip: 'Prueba ESC/POS',
+                  onPressed: () {
+                    imprimirPruebaEscPos();
+                  },
+                ),
+              ],
+            ),
+          ),
+          resizeToAvoidBottomInset: true,
+          body: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: controlador.selectedProducts.length > 0
+                ? ListView.builder(
+                    padding: EdgeInsets.only(top: 8),
+                    itemCount: controlador.selectedProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = controlador.selectedProducts[index];
+                      return _cardProduct(product);
+                    },
+                  )
+                : Center(child: Text('No hay ningun producto agregado aun')),
+          ),
+        );
+      }),
+    );
   }
 
   Widget _totalToPay(BuildContext context) {
@@ -238,17 +360,50 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                         ElevatedButton(
                           onPressed: () async {
                             await controlador.emitirBoletaSii(context: context);
-                            // Si se generó el XML, mostrar el PDF automáticamente y cerrar el diálogo
+                            // Si se generó el XML, preguntar acción al usuario
                             if ((controlador.dteXmlString ?? '').isNotEmpty) {
-                              // Debug: mostrar el XML y el folio antes de navegar al PDF
                               print('DEBUG flujo principal: folio = \\${controlador.dteBoletaId}');
                               print('DEBUG flujo principal: xml_string =');
                               print(controlador.dteXmlString);
                               Navigator.of(context).pop(); // Cierra el diálogo primero
-                              await Get.toNamed('/boleta_pdf_pos', arguments: {
-                                'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
-                                'xml_string': controlador.dteXmlString ?? '',
-                              });
+                              final opcion = await showDialog<String>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text('¿Qué desea hacer?'),
+                                  content: Text('¿Ver PDF de la boleta o imprimir por Bluetooth?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop('pdf'),
+                                      child: Text('Ver PDF'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop('bluetooth'),
+                                      child: Text('Imprimir'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (opcion == 'pdf') {
+                                await Get.toNamed('/boleta_pdf_pos', arguments: {
+                                  'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
+                                  'xml_string': controlador.dteXmlString ?? '',
+                                });
+                              } else if (opcion == 'bluetooth') {
+                                // Actualiza _boletaData con los datos reales antes de imprimir
+                                _boletaData = {
+                                  'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
+                                  'rut_emisor': '76.123.456-7',
+                                  'razon_social': 'Empresa de Ejemplo SpA',
+                                  'total': controlador.total.value,
+                                  'detalle': controlador.selectedProducts.map((p) => {
+                                    'nombre': p.nombreProducto ?? '',
+                                    'cantidad': p.cantidad ?? 1,
+                                    'monto': int.tryParse(p.precioVenta ?? '0') != null ? (int.parse(p.precioVenta!) * (p.cantidad ?? 1)) : 0,
+                                  }).toList(),
+                                  'ted_dd': controlador.dteXmlString ?? '',
+                                };
+                                await _imprimirBluetooth();
+                              }
                             }
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),

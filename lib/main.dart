@@ -1,3 +1,4 @@
+import 'src/pages/configuraciones/impresora.dart';
 import 'package:posmobilfinal/src/pages/empresas/mantenedor_empresas_page.dart';
 import 'package:posmobilfinal/src/pages/informes/estadisticas/estadisticas_ventas_page.dart';
 import 'package:posmobilfinal/src/pages/mantenedores/local/mantenedores_local_page.dart';
@@ -222,6 +223,13 @@ class _MyAppState extends State<MyApp> {
         GetPage(
           name: '/boleta_pdf_pos',
           page: () => const BoletaPdfPosPage(),
+          transition: Transition.rightToLeft,
+        ),
+
+        // Ruta para configuración de impresora Bluetooth
+        GetPage(
+          name: '/configuraciones/impresora',
+          page: () => const ImpresorasPage(),
           transition: Transition.rightToLeft,
         ),
 
