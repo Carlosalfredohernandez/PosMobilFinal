@@ -1,33 +1,6 @@
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
-  // Prueba rápida con esc_pos_bluetooth
-  void imprimirPruebaEscPos() async {
-    final printerManager = PrinterBluetoothManager();
 
-    printerManager.startScan(Duration(seconds: 4));
-    printerManager.scanResults.listen((devices) async {
-      if (devices.isNotEmpty) {
-        final PrinterBluetooth printer = devices.first;
-        printerManager.selectPrinter(printer);
-
-        final profile = await CapabilityProfile.load();
-        final generator = Generator(PaperSize.mm58, profile);
-        final ticket = <int>[];
-        ticket.addAll(generator.text(
-          'Prueba ESC POS',
-          styles: const PosStyles(align: PosAlign.center, bold: true),
-          linesAfter: 1,
-        ));
-        ticket.addAll(generator.feed(3));
-        ticket.addAll(generator.cut());
-
-        await printerManager.printTicket(profile, ticket);
-        Get.snackbar('ESC/POS', 'Ticket de prueba enviado a la primera impresora encontrada');
-      } else {
-        Get.snackbar('ESC/POS', 'No se encontraron impresoras Bluetooth');
-      }
-    });
-  }
+import 'dart:typed_data';
+import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -39,7 +12,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
-import 'package:get_storage/get_storage.dart';
+
+// ...el resto del código debe estar dentro de la clase ClienteCajaCreatePage o su State
 
 class ClienteCajaCreatePage extends StatefulWidget {
 
@@ -48,6 +22,81 @@ class ClienteCajaCreatePage extends StatefulWidget {
 }
 
 class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
+
+      // Prueba rápida con esc_pos_bluetooth (solo si tienes la dependencia y el hardware compatible)
+      void imprimirPruebaEscPos() async {
+        // Si tienes esc_pos_bluetooth y esc_pos_utils, descomenta y ajusta:
+        // final printerManager = PrinterBluetoothManager();
+        // printerManager.startScan(Duration(seconds: 4));
+        // printerManager.scanResults.listen((devices) async {
+        //   if (devices.isNotEmpty) {
+        //     final PrinterBluetooth printer = devices.first;
+        //     printerManager.selectPrinter(printer);
+        //     final profile = await CapabilityProfile.load();
+        //     final generator = Generator(PaperSize.mm58, profile);
+        //     final ticket = <int>[];
+        //     ticket.addAll(generator.text(
+        //       'Prueba ESC POS',
+        //       styles: const PosStyles(align: PosAlign.center, bold: true),
+        //       linesAfter: 1,
+        //     ));
+        //     ticket.addAll(generator.feed(3));
+        //     ticket.addAll(generator.cut());
+        //     await printerManager.printTicket(profile, ticket);
+        //     Get.snackbar('ESC/POS', 'Ticket de prueba enviado a la primera impresora encontrada');
+        //   } else {
+        //     Get.snackbar('ESC/POS', 'No se encontraron impresoras Bluetooth');
+        //   }
+        // });
+        Get.snackbar('ESC/POS', 'Función de prueba ESC/POS restaurada (requiere dependencias esc_pos_bluetooth y esc_pos_utils)');
+      }
+    // Imprime el PDF generado como imagen en la impresora Bluetooth
+    Future<void> _imprimirPdfComoImagen(pw.Document pdf) async {
+      try {
+        // Renderiza la primera página del PDF a imagen PNG
+        final List<Uint8List> images = await pdf.save().then((bytes) async {
+          final pdfPages = await Printing.raster(bytes, pages: [0]);
+          final List<Uint8List> result = [];
+          await for (final page in pdfPages) {
+            final imgBytes = await page.toPng();
+            result.add(imgBytes);
+          }
+          return result;
+        });
+        if (images.isEmpty) {
+          Get.snackbar('Impresión', 'No se pudo renderizar el PDF a imagen');
+          return;
+        }
+        final impresoraGuardada = _storage.read('impresora');
+        if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+          Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+          return;
+        }
+        final String address = impresoraGuardada['address'].toString();
+        final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
+        BluetoothDevice? device;
+        for (final d in bonded) {
+          if (d.address == address) {
+            device = d;
+            break;
+          }
+        }
+        if (device == null) {
+          Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+          return;
+        }
+        final bool? conectado = await _bluetooth.isConnected;
+        if (conectado != true) {
+          await _bluetooth.connect(device);
+          await Future.delayed(const Duration(milliseconds: 600));
+        }
+        // Envía la imagen a la impresora
+        await _bluetooth.printImageBytes(images.first);
+        Get.snackbar('Impresión', 'PDF enviado como imagen a la impresora');
+      } catch (e) {
+        Get.snackbar('Error de impresión', e.toString());
+      }
+    }
   // Asegura que el controlador esté inicializado
   late final ClienteCajaCreateController controlador;
   final BlueThermalPrinter _bluetooth = BlueThermalPrinter.instance;
@@ -389,20 +438,34 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                   'xml_string': controlador.dteXmlString ?? '',
                                 });
                               } else if (opcion == 'bluetooth') {
-                                // Actualiza _boletaData con los datos reales antes de imprimir
-                                _boletaData = {
-                                  'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
-                                  'rut_emisor': '76.123.456-7',
-                                  'razon_social': 'Empresa de Ejemplo SpA',
-                                  'total': controlador.total.value,
-                                  'detalle': controlador.selectedProducts.map((p) => {
-                                    'nombre': p.nombreProducto ?? '',
-                                    'cantidad': p.cantidad ?? 1,
-                                    'monto': int.tryParse(p.precioVenta ?? '0') != null ? (int.parse(p.precioVenta!) * (p.cantidad ?? 1)) : 0,
-                                  }).toList(),
-                                  'ted_dd': controlador.dteXmlString ?? '',
-                                };
-                                await _imprimirBluetooth();
+                                // Genera el PDF y lo imprime como imagen
+                                final pdf = pw.Document();
+                                pdf.addPage(
+                                  pw.Page(
+                                    build: (pw.Context context) {
+                                      return pw.Column(
+                                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                        children: [
+                                          pw.Text('BOLETA ELECTRÓNICA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                                          pw.SizedBox(height: 10),
+                                          pw.Text('Emisor: Empresa de Ejemplo SpA'),
+                                          pw.Text('RUT: 76.123.456-7'),
+                                          pw.Text('Fecha: ${DateTime.now().toString().substring(0, 16)}'),
+                                          pw.SizedBox(height: 10),
+                                          pw.Text('Detalle de productos/servicios:'),
+                                          ...controlador.selectedProducts.map((p) => pw.Bullet(text: '${p.nombreProducto ?? ''} - ${p.precioVenta ?? ''} x${p.cantidad ?? 1}')),
+                                          pw.SizedBox(height: 10),
+                                          pw.Text('Total: \$${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                          pw.SizedBox(height: 20),
+                                          pw.Divider(),
+                                          pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                          pw.Text('SII: 2026-05-01T12:00:00Z'),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                );
+                                await _imprimirPdfComoImagen(pdf);
                               }
                             }
                           },

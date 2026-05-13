@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class BoletaProvider {
-  static const String _baseUrl = 'https://dtecoreengine-production.up.railway.app/api/v1/boleta';
-  static const String _trackingUrl = 'https://dtecoreengine-production.up.railway.app/api/v1/tracking';
+  static const String _baseUrl = 'https://divine-commitment-production-a0ed.up.railway.app/api/v1/boleta';
+  static const String _trackingUrl = 'https://divine-commitment-production-a0ed.up.railway.app/api/v1/tracking';
 
   /// Genera una boleta electrónica en el sistema DTE
   Future<String?> generarBoleta(Map<String, dynamic> boletaData) async {
