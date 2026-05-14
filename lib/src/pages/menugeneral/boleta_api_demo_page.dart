@@ -85,7 +85,13 @@ class _BoletaApiDemoPageState extends State<BoletaApiDemoPage> {
       'total': total,
       'api_key': 'Vikingo80',
     };
-    final id = await _provider.generarBoleta(boleta);
+    final boletaResponse = await _provider.generarBoleta(boleta);
+    print('DEBUG boletaResponse:');
+    print(boletaResponse);
+    String? id;
+    if (boletaResponse != null) {
+      id = boletaResponse['id']?.toString();
+    }
     setState(() {
       _boletaId = id;
       _mensaje = id != null ? 'Boleta generada: $id' : 'Error al generar boleta';

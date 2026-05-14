@@ -7,6 +7,9 @@ import 'package:posmobilfinal/src/models/inventario.dart';
 import 'package:posmobilfinal/src/providers/boletas_provider.dart';
 import 'package:posmobilfinal/src/providers/boleta_provider.dart';
 import 'package:posmobilfinal/src/models/producto.dart';
+import 'package:posmobilfinal/utils/boleta_pdf_pos.dart';
+import 'dart:convert';
+import 'package:xml/xml.dart' as xml;
 
 // --- Controlador del carrito ---
 class CarritoController extends GetxController {
@@ -255,10 +258,28 @@ Future<void> _finalizarVenta(CarritoController carritoController) async {
       'api_key': 'Vikingo80',
     };
     final boletaProvider = Get.put(BoletaProvider());
-    final boletaId = await boletaProvider.generarBoleta(boletaSii);
-    if (boletaId == null) {
+    final boletaSiiResponse = await boletaProvider.generarBoleta(boletaSii);
+    print('DEBUG boletaSiiResponse:');
+    print(boletaSiiResponse);
+    if (boletaSiiResponse == null) {
       Get.snackbar('Error', 'No se pudo grabar la boleta en SII');
       return;
+    }
+    final boletaId = boletaSiiResponse['id']?.toString() ?? '';
+    // --- Decodificar xml_base64 y extraer TED ---
+    String tedDd = '';
+    if (boletaSiiResponse['xml_base64'] != null) {
+      try {
+        final xmlStr = utf8.decode(base64.decode(boletaSiiResponse['xml_base64']));
+        final doc = xml.XmlDocument.parse(xmlStr);
+        final tedNode = doc.findAllElements('TED').firstOrNull;
+        if (tedNode != null) {
+          tedDd = tedNode.toXmlString();
+        }
+      } catch (e) {
+        print('Error extrayendo TED del XML:');
+        print(e);
+      }
     }
     // 3. Preguntar al usuario si quiere PDF o impresión
     final opcion = await Get.dialog<String>(
@@ -280,11 +301,31 @@ Future<void> _finalizarVenta(CarritoController carritoController) async {
       ),
     );
     if (opcion == 'pdf') {
-      // Navegar a pantalla de PDF (ajusta según tu flujo)
-      Get.toNamed('/boleta_pdf_pos', arguments: {'boletaId': boletaId});
+      // Navegar a la misma página de PDF POS que usa la demo
+      final boletaParaPdf = {
+        'folio': boletaId,
+        'rut_emisor': '77710916-2', // O el valor real
+        'razon_social': 'Tecnolasa Chile SpA', // O el valor real
+        'sucursal': 'Sucursal Providencia',
+        'direccion': 'Av. Providencia 1007 of.41',
+        'giro': 'Servicios Tecnologicos',
+        'cod_vendedor': '3606',
+        'vendedor': 'NEFLI PALACIOS MARIO',
+        'caja': '3',
+        'fecha': DateTime.now().toString().substring(0,10),
+        'hora': "${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}",
+        'detalle': productos.entries.map((entry) => {
+          'nombre': entry.key.nombreProducto ?? '',
+          'cantidad': entry.value,
+          'precio': int.tryParse(entry.key.precioVenta ?? '0') ?? 0,
+          'monto': (int.tryParse(entry.key.precioVenta ?? '0') ?? 0) * entry.value,
+        }).toList(),
+        'total': total,
+        'ted_dd': tedDd,
+      };
+      Get.toNamed('/boleta_pdf_pos', arguments: boletaParaPdf);
     } else if (opcion == 'imprimir') {
-      // Navegar a pantalla de impresión directa (ajusta según tu flujo)
-      Get.toNamed('/boleta_pdf_pos', arguments: {'boletaId': boletaId, 'imprimir': true});
+      Get.snackbar('Impresión', 'Funcionalidad de impresión directa aún no implementada en este flujo.');
     }
     carritoController.limpiarCarrito();
     if (boletaLocalGuardada) {
