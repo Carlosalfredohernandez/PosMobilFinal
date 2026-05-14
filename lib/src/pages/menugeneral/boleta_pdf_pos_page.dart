@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'package:blue_thermal_printer/blue_thermal_printer.dart';
+import 'package:printing/printing.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,6 +17,7 @@ class BoletaPdfPosPage extends StatefulWidget {
 }
 
 class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
+    final BlueThermalPrinter bluetooth = BlueThermalPrinter.instance;
   PdfController? _pdfController;
   String? _pdfPath;
   bool _loading = true;
@@ -68,6 +72,42 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
           : _pdfPath == null
               ? const Center(child: Text('No se pudo generar el PDF'))
               : PdfView(controller: _pdfController!),
+      floatingActionButton: _loading || _pdfPath == null
+          ? null
+          : FloatingActionButton.extended(
+              icon: const Icon(Icons.print),
+              label: const Text('Imprimir boleta'),
+              onPressed: _imprimirBoletaBluetooth,
+            ),
     );
+
+  }
+
+  Future<void> _imprimirBoletaBluetooth() async {
+    if (_pdfPath == null) return;
+    try {
+      // Renderizar la primera página del PDF a imagen
+      final pdfBytes = await File(_pdfPath!).readAsBytes();
+      final pages = await Printing.raster(pdfBytes, pages: [0], dpi: 200);
+      Uint8List? imageBytes;
+      await for (final page in pages) {
+        imageBytes = await page.toPng();
+        break;
+      }
+      if (imageBytes == null) {
+        Get.snackbar('Error', 'No se pudo renderizar la imagen del PDF');
+        return;
+      }
+      // Enviar imagen a la impresora Bluetooth
+      final isConnected = await bluetooth.isConnected ?? false;
+      if (!isConnected) {
+        Get.snackbar('Bluetooth', 'Conecte la impresora antes de imprimir');
+        return;
+      }
+      await bluetooth.printImageBytes(imageBytes);
+      Get.snackbar('Impresión', 'Boleta enviada a la impresora');
+    } catch (e) {
+      Get.snackbar('Error', 'No se pudo imprimir: $e');
+    }
   }
 }

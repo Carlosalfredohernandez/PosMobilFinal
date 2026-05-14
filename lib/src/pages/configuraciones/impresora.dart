@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:get/get.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 
 class ImpresorasPage extends StatefulWidget {
@@ -46,8 +47,15 @@ class _ImpresorasPageState extends State<ImpresorasPage> {
                   leading: Icon(Icons.print),
                   title: Text(_devices[i].name ?? ''),
                   subtitle: Text(_devices[i].address ?? ''),
-                  onTap: () {
+                  onTap: () async {
                     savePrinter(_devices[i]);
+                    // Intentar conectar a la impresora
+                    try {
+                      await bluetooth.connect(_devices[i]);
+                      Get.snackbar('Impresora', 'Conectado a ${_devices[i].name}', snackPosition: SnackPosition.BOTTOM);
+                    } catch (e) {
+                      Get.snackbar('Error', 'No se pudo conectar: $e', snackPosition: SnackPosition.BOTTOM);
+                    }
                     Navigator.pop(context, _devices[i]);
                   },
                 );

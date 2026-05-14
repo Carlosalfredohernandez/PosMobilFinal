@@ -10,7 +10,7 @@ import 'dart:convert';
 /// 2. Login usuarios → tabla USUARIOSEMPRESA (usuarios + roles) - Backend Local puerto 4400  
 /// 3. Acceso a datos → por empresa_id
 class AuthUnificadoService extends GetxController {
-  final String baseUrl = 'http://192.168.1.88:4400/api'; // ✅ CORREGIDO: IP del servidor backend
+  final String baseUrl = 'https://backendposmobil-production.up.railway.app/api'; // Railway backend
   final storage = GetStorage();
   
   // Estados observables

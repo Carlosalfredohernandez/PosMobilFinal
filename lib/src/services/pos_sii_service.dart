@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class POSSIIService {
-  static const String _baseUrl = 'http://192.168.1.88:3000'; // IP real de tu PC
+  static const String _baseUrl = 'https://backendposmobil-production.up.railway.app'; // Railway backend
   static const String _rutEmpresa = '77710916-2';
   static const String _passwordCert = 'vikingo80';
   

@@ -8,7 +8,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 
 class POSSIIAuthServiceCompleto extends GetxService {
-  final String baseUrl = 'http://localhost:3000'; // Tu servidor backend
+  final String baseUrl = 'https://backendposmobil-production.up.railway.app'; // Railway backend
   final storage = GetStorage();
   
   // 🎯 Estado de autenticación

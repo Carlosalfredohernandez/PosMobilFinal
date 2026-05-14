@@ -10,17 +10,77 @@ class BoletasProvider extends GetConnect {
 
   Usuario userSession = Usuario.fromJson(GetStorage().read('usuario') ?? {});
 
+  @override
+  void onInit() {
+    super.onInit();
+    // Railway puede tener arranque en frio, aumentar timeout reduce falsos fallos.
+    httpClient.timeout = const Duration(seconds: 25);
+  }
+
+  bool _isTransientFailure(Response response) {
+    final status = response.statusCode ?? 0;
+    final statusText = (response.statusText ?? '').toLowerCase();
+    final bodyText = response.bodyString?.toLowerCase() ?? '';
+
+    return status == 502 ||
+        status == 503 ||
+        status == 504 ||
+        statusText.contains('failed to respond') ||
+        bodyText.contains('failed to respond') ||
+        statusText.contains('timeout') ||
+        bodyText.contains('timeout');
+  }
+
   Future<ResponseApi> create(Boleta boleta) async {
-    Response response = await post(
-      '$url/create',
-      boleta.toJson(),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': userSession.sessionToken ?? ''
+    if ((userSession.sessionToken ?? '').isEmpty) {
+      return ResponseApi(
+        success: false,
+        message: 'Sesion expirada. Inicia sesion nuevamente para guardar la boleta.',
+      );
+    }
+
+    try {
+      Response? lastResponse;
+
+      for (var attempt = 1; attempt <= 2; attempt++) {
+        final response = await post(
+          '$url/create',
+          boleta.toJson(),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': userSession.sessionToken ?? '',
+          },
+        );
+        lastResponse = response;
+
+        if (!_isTransientFailure(response)) {
+          if (response.body is Map<String, dynamic>) {
+            return ResponseApi.fromJson(response.body);
+          }
+
+          return ResponseApi(
+            success: response.isOk,
+            message: response.statusText ?? 'Respuesta inesperada del servidor',
+            data: response.body,
+          );
+        }
+
+        if (attempt < 2) {
+          await Future.delayed(const Duration(milliseconds: 900));
+        }
       }
-    );
-    ResponseApi responseApi = ResponseApi.fromJson(response.body);
-    return responseApi;
+
+      return ResponseApi(
+        success: false,
+        message: 'Servidor temporalmente no disponible. Intenta nuevamente en unos segundos.',
+        data: lastResponse?.body,
+      );
+    } catch (e) {
+      return ResponseApi(
+        success: false,
+        message: 'Error de red al guardar boleta: $e',
+      );
+    }
   }
 
   Future<List<Boleta>> getAllByUser() async {

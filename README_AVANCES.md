@@ -1,13 +1,15 @@
 # POSMOBIL - Resumen de Avances y Estabilidad
 
-Fecha: 11-05-2026
+
+Fecha: 13-05-2026 (actualizado)
 
 ## 1. Qué hace esta aplicación
 - Aplicación POS móvil en Flutter para ventas en caja.
 - Permite buscar/agregar productos, calcular total y registrar pago.
-- Emite boletas electrónicas (DTE) integradas con SII vía API.
+- Emite boletas electrónicas (DTE) integradas con SII vía API (ahora usando endpoint público Railway: https://backendposmobil-production.up.railway.app).
 - Recupera el XML autorizado de la boleta emitida.
 - Genera y muestra PDF de boleta en formato POS para visualización e impresión.
+- Permite imprimir la boleta como imagen PDF en impresora Bluetooth compatible.
 
 ## 2. Flujo principal operativo
 1. Caja: se arma el detalle de venta con productos seleccionados.
@@ -16,7 +18,23 @@ Fecha: 11-05-2026
 4. Parseo XML: se transforma XML a mapa de datos para PDF.
 5. PDF POS: se genera boleta con encabezado, detalle, totales y timbre TED/PDF417.
 
-## 3. Ajustes clave realizados para estabilidad
+
+## 3. Ajustes clave y nuevas funcionalidades
+### Integración con backend público Railway
+- Todos los endpoints de consumo de API fueron actualizados a https://backendposmobil-production.up.railway.app para acceso desde cualquier red.
+
+### Pantalla de configuración de impresora Bluetooth
+- Nueva opción en el menú general para seleccionar y conectar impresora Bluetooth.
+- Al seleccionar una impresora, la app intenta conectar y muestra mensaje de éxito o error.
+
+### Impresión directa de boleta PDF
+- Desde la pantalla de visualización PDF POS, se puede imprimir la boleta como imagen en la impresora Bluetooth conectada.
+- El botón flotante (FAB) “Imprimir boleta” renderiza la primera página del PDF y la envía a la impresora.
+- Se valida conexión antes de imprimir y se notifica al usuario.
+
+### Validaciones y feedback
+- Mensajes claros de éxito/error al conectar impresora y al imprimir.
+- Recomendaciones de troubleshooting para errores comunes de Bluetooth.
 
 ### Integración de parser centralizado XML
 - Se unificó el parseo en un utilitario dedicado para evitar diferencias entre flujos.
@@ -57,12 +75,31 @@ Fecha: 11-05-2026
 - TED DD para código PDF417.
 
 ## 5. Estado actual
-- Flujo de emisión y visualización PDF integrado de extremo a extremo.
-- La aplicación está en mejor estado de estabilidad para pruebas reales con XML de SII.
+- Flujo de emisión, visualización PDF y prueba de impresión Bluetooth integrado de extremo a extremo.
+- La aplicación está en mejor estado de estabilidad para pruebas reales con XML de SII y backend público.
 - Si un XML llega con variaciones nuevas, el parser centralizado permite ajustar una sola vez y propagar a todo el flujo.
+- Se puede operar y probar desde cualquier red, sin depender de IPs locales.
 
 ## 6. Recomendaciones de operación
 1. Mantener parser XML como única fuente de datos para PDF.
 2. Conservar logs de debug durante QA y retirarlos/reducirlos en producción.
 3. Agregar pruebas sobre muestras XML reales (con y sin campos opcionales).
 4. Versionar cualquier ajuste de estructura XML en este mismo documento.
+5. Para impresión Bluetooth:
+	- Asegurarse de conectar la impresora desde la pantalla de configuración antes de imprimir.
+	- Si ocurre error de conexión, cerrar otras apps que usen la impresora y volver a intentar.
+	- Verificar compatibilidad de la impresora con impresión de imágenes.
+6. Usar siempre el endpoint Railway para pruebas remotas o en producción.
+## 7. Avances recientes (14-05-2026)
+
+- Integración completa del flujo de cobro en ventas_page.dart:
+	- Al presionar "Cobrar y finalizar venta", la boleta se guarda primero en backendposmobil (API propia) y luego en la API SII (Railway).
+	- Solo si ambos guardados son exitosos, se ofrece al usuario la opción de ver el PDF o imprimir la boleta.
+	- El carrito se limpia únicamente tras éxito en ambos sistemas.
+	- Feedback robusto de errores en cada paso (snackbar).
+	- El usuario puede elegir entre visualizar PDF o imprimir tras la venta.
+- Corrección de errores de compilación y estructura en ventas_page.dart:
+	- Función _finalizarVenta ahora está fuera de la clase y correctamente enlazada.
+	- Se corrigieron cierres de clase/función duplicados y errores de sintaxis.
+	- Se maneja defensivamente el null en precios y detalles.
+- El flujo de ventas ahora es robusto, seguro y preparado para pruebas integrales.

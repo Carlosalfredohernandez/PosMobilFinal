@@ -27,7 +27,9 @@ class MenuGeneralPage extends StatelessWidget {
       MenuItem('PUNTO DE VENTAS', Icons.point_of_sale_rounded, Colors.deepOrangeAccent),
       // Nueva opción para generación de PDF de boletas
       MenuItem('GENERACIÓN PDF DE BOLETAS', Icons.picture_as_pdf_rounded, Colors.pink.shade400),
-        MenuItem('GENERACIÓN DE BOLETAS (API SII)', Icons.receipt_long_rounded, Colors.indigo.shade400),
+      MenuItem('GENERACIÓN DE BOLETAS (API SII)', Icons.receipt_long_rounded, Colors.indigo.shade400),
+      // Opción de configuración de impresora Bluetooth
+      MenuItem('IMPRESORA BLUETOOTH', Icons.print_rounded, Colors.blueGrey.shade700),
     ];
 
     return Scaffold(
@@ -275,13 +277,17 @@ class MenuGeneralPage extends StatelessWidget {
       case 9:
         controller.goToPuntoDeVentas();
         break;
-        case 10:
-          // Navegar a la página demo de la API de boletas
-          Get.toNamed('/boleta_api_demo');
-          break;
       case 10:
         // Navegar a la página demo de generación de PDF de boletas
         Get.toNamed('/boleta_pdf_demo');
+        break;
+      case 11:
+        // Navegar a la página demo de la API de boletas
+        Get.toNamed('/boleta_api_demo');
+        break;
+      case 12:
+        // Navegar a la configuración de impresora Bluetooth
+        Get.toNamed('/configuraciones/impresora');
         break;
     }
   }

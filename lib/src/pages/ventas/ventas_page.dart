@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'ventas_controller.dart';
+import 'package:posmobilfinal/src/models/boleta.dart';
+import 'package:posmobilfinal/src/models/inventario.dart';
+import 'package:posmobilfinal/src/providers/boletas_provider.dart';
+import 'package:posmobilfinal/src/providers/boleta_provider.dart';
 import 'package:posmobilfinal/src/models/producto.dart';
 
 // --- Controlador del carrito ---
@@ -44,7 +49,7 @@ class CarritoController extends GetxController {
 // --- Widget mínimo del carrito ---
 class CarritoWidget extends StatelessWidget {
   final ScrollController? scrollController;
-  const CarritoWidget({Key? key, this.scrollController}) : super(key: key);
+  const CarritoWidget({super.key, this.scrollController});
 
   @override
   Widget build(BuildContext context) {
@@ -114,13 +119,215 @@ class CarritoWidget extends StatelessWidget {
           Text('Total: ${carritoController.totalMonto}'),
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: () => carritoController.limpiarCarrito(),
-            child: const Text('Limpiar carrito'),
+            onPressed: () async {
+              await _finalizarVenta(carritoController);
+            },
+            child: const Text('Cobrar y finalizar venta'),
           ),
         ],
       );
     });
   }
+
+}
+
+// Esta función debe estar fuera de cualquier clase o método build
+Future<void> _finalizarVenta(CarritoController carritoController) async {
+  if (carritoController.carrito.isEmpty) {
+    Get.snackbar('Carrito vacío', 'Agrega productos antes de cobrar');
+    return;
+  }
+  try {
+    // 1. Construir boleta local y grabar en backendposmobil
+    final productos = carritoController.carrito;
+    final total = productos.entries.fold(0, (sum, entry) {
+      final precioVenta = entry.key.precioVenta ?? '0';
+      final precio = int.tryParse(precioVenta) ?? 0;
+      return sum + (precio * entry.value);
+    });
+    final boletasProvider = Get.put(BoletasProvider());
+    // Datos mínimos para inventario
+    final usuario = boletasProvider.userSession;
+    final numeroBoleta = '201'; // String
+    final localUsuario = (usuario.localOficina != null && usuario.localOficina!.isNotEmpty)
+        ? usuario.localOficina!
+        : '1';
+    final idUsuario = usuario.id?.toString() ?? "";
+    final idUsuarioE = usuario.id?.toString() ?? "1";
+    final idCliente = '23'; // String
+    final fechaHoy = DateTime.now();
+    final fechaStr = "${fechaHoy.year.toString().padLeft(4, '0')}-${fechaHoy.month.toString().padLeft(2, '0')}-${fechaHoy.day.toString().padLeft(2, '0')}";
+
+    final productosPayload = productos.entries.map((entry) {
+      return {
+        "id": entry.key.id?.toString() ?? '',
+        "cantidad": entry.value,
+        "precio_venta": int.tryParse(entry.key.precioVenta ?? "0") ?? 0,
+      };
+    }).toList();
+
+    final inventarioObj = Inventario(
+      idCliente: idCliente,
+      local: int.tryParse(localUsuario) ?? 1,
+      idUsuarioE: idUsuarioE,
+      fecha: fechaStr,
+      nroDocumento: int.tryParse(numeroBoleta) ?? 201,
+    );
+
+    final boletaLocal = Boleta(
+      numero: numeroBoleta,
+      usuario: idUsuario,
+      localUsuario: localUsuario,
+      valor: total.toString(),
+      formaPago: 'EFECTIVO',
+      inventario: inventarioObj,
+      productos: productosPayload,
+    );
+
+    bool boletaLocalGuardada = false;
+    final responseApi = await boletasProvider.create(boletaLocal);
+    if (responseApi.success == true) {
+      boletaLocalGuardada = true;
+    } else {
+      final backendMessage = responseApi.message ?? '';
+      if (_esFalloTemporalBackend(backendMessage)) {
+        final continuarContingencia = await Get.dialog<bool>(
+              AlertDialog(
+                title: const Text('Servidor no disponible'),
+                content: const Text(
+                  'No se pudo grabar en backendposmobil por una falla temporal del servidor. ¿Desea continuar la venta y dejar esta boleta como pendiente de sincronizacion?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Get.back(result: false),
+                    child: const Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () => Get.back(result: true),
+                    child: const Text('Continuar'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+
+        if (!continuarContingencia) {
+          Get.snackbar(
+            'Error',
+            'No se pudo grabar la boleta: ${responseApi.message ?? 'error de servidor'}',
+          );
+          return;
+        }
+
+        await _guardarBoletaPendiente(boletaLocal.toJson());
+        Get.snackbar(
+          'Modo contingencia',
+          'Boleta marcada como pendiente para sincronizar cuando vuelva el backend.',
+        );
+      } else {
+        Get.snackbar(
+          'Error',
+          responseApi.message?.isNotEmpty == true
+              ? 'No se pudo grabar la boleta: ${responseApi.message}'
+              : 'No se pudo grabar la boleta en backendposmobil',
+        );
+        return;
+      }
+    }
+
+    final detallesSii = productos.entries.map((entry) {
+      final precioVenta = entry.key.precioVenta ?? '0';
+      final precio = int.tryParse(precioVenta) ?? 0;
+      return {
+        'nombre': entry.key.nombreProducto ?? '',
+        'cantidad': entry.value,
+        'precio': precio,
+        'monto_item': precio * entry.value,
+      };
+    }).toList();
+
+    // 2. Grabar boleta en API SII
+    final boletaSii = {
+      'emisor': '99999999-9',
+      'receptor': {'rut': '11111111-1', 'razon': 'Cliente POS'},
+      'detalles': detallesSii,
+      'total': total,
+      'api_key': 'Vikingo80',
+    };
+    final boletaProvider = Get.put(BoletaProvider());
+    final boletaId = await boletaProvider.generarBoleta(boletaSii);
+    if (boletaId == null) {
+      Get.snackbar('Error', 'No se pudo grabar la boleta en SII');
+      return;
+    }
+    // 3. Preguntar al usuario si quiere PDF o impresión
+    final opcion = await Get.dialog<String>(
+      AlertDialog(
+        title: const Text('¿Qué desea hacer?'),
+        content: const Text(
+          'La venta fue registrada en ambos sistemas. ¿Desea ver el PDF o imprimir la boleta?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: 'pdf'),
+            child: const Text('Ver PDF'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(result: 'imprimir'),
+            child: const Text('Imprimir'),
+          ),
+        ],
+      ),
+    );
+    if (opcion == 'pdf') {
+      // Navegar a pantalla de PDF (ajusta según tu flujo)
+      Get.toNamed('/boleta_pdf_pos', arguments: {'boletaId': boletaId});
+    } else if (opcion == 'imprimir') {
+      // Navegar a pantalla de impresión directa (ajusta según tu flujo)
+      Get.toNamed('/boleta_pdf_pos', arguments: {'boletaId': boletaId, 'imprimir': true});
+    }
+    carritoController.limpiarCarrito();
+    if (boletaLocalGuardada) {
+      Get.snackbar(
+        'Venta finalizada',
+        'La venta fue registrada y el carrito limpiado',
+      );
+    } else {
+      Get.snackbar(
+        'Venta finalizada en contingencia',
+        'Emitida en SII y guardada como pendiente en backendposmobil.',
+      );
+    }
+  } catch (e) {
+    Get.snackbar('Error', 'Ocurrió un error: $e');
+  }
+}
+
+bool _esFalloTemporalBackend(String message) {
+  final msg = message.toLowerCase();
+  return msg.contains('failed to respond') ||
+      msg.contains('temporalmente no disponible') ||
+      msg.contains('timeout') ||
+      msg.contains('502') ||
+      msg.contains('503') ||
+      msg.contains('504');
+}
+
+Future<void> _guardarBoletaPendiente(Map<String, dynamic> boletaJson) async {
+  final storage = GetStorage();
+  final raw = storage.read('boletas_pendientes');
+  final pendientes = <Map<String, dynamic>>[];
+
+  if (raw is List) {
+    for (final item in raw) {
+      if (item is Map) {
+        pendientes.add(Map<String, dynamic>.from(item));
+      }
+    }
+  }
+
+  pendientes.add({...boletaJson, 'pendiente_sync': true});
+  await storage.write('boletas_pendientes', pendientes);
 }
 
 // Si CarritoController y CarritoWidget están en archivos separados, descomentar y ajustar:
@@ -128,7 +335,7 @@ class CarritoWidget extends StatelessWidget {
 // import 'carrito_widget.dart';
 
 class VentasPage extends StatelessWidget {
-  VentasPage({super.key});
+  const VentasPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -136,12 +343,12 @@ class VentasPage extends StatelessWidget {
     final controller = Get.isRegistered<VentasController>()
         ? Get.find<VentasController>()
         : Get.put(VentasController());
-    final carritoController = Get.isRegistered<CarritoController>()
-        ? Get.find<CarritoController>()
-        : Get.put(CarritoController());
+    if (!Get.isRegistered<CarritoController>()) {
+      Get.put(CarritoController());
+    }
 
     return Obx(() {
-      print(
+      debugPrint(
         '[VENTAS][BUILD] isLoading: [36m${controller.isLoading.value}[0m, error: [31m${controller.error.value}[0m, productos: [32m${controller.productos.length}[0m',
       );
 
@@ -218,7 +425,7 @@ class VentasPage extends StatelessWidget {
           .toList();
       final categorias = categoriaIds
           .map(
-            (id) => controller.categoriaNombreMap[id] ?? id ?? 'Sin categoría',
+            (id) => controller.categoriaNombreMap[id] ?? id,
           )
           .toList();
       final tabs = categorias.isNotEmpty ? categorias : ['Sin categoría'];
