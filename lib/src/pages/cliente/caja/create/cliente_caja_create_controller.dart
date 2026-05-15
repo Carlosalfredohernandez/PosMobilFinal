@@ -45,11 +45,12 @@ class ClienteCajaCreateController extends GetxController {
 
       print('📤 Enviando boleta al SII...');
       final boletaProvider = BoletaProvider();
-      final boletaId = await boletaProvider.generarBoleta(boletaData);
-      if (boletaId == null) {
+      final boletaResponse = await boletaProvider.generarBoleta(boletaData);
+      if (boletaResponse == null) {
         Get.snackbar('❌ Error', 'No se pudo generar la boleta SII');
         return;
       }
+      final boletaId = boletaResponse['id']?.toString() ?? '';
       print('✅ Boleta generada con ID: $boletaId');
       // Obtener XML del DTE autorizado
       final xml = await boletaProvider.obtenerXmlBoleta(boletaId);

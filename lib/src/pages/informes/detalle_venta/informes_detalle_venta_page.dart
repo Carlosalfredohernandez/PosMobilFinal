@@ -82,17 +82,30 @@ class _InformesDetalleVentaPageState extends State<InformesDetalleVentaPage> {
     try {
       // Si no hay fechas, trae todo, si hay fechas, filtra
       if (fechaInicial != null && fechaFinal != null) {
+        // Ajustar fechas para incluir todo el día final (límite superior exclusivo)
+        final desdeInicio = DateTime(fechaInicial!.year, fechaInicial!.month, fechaInicial!.day, 0, 0, 0);
+        final hastaExclusivo = DateTime(fechaFinal!.year, fechaFinal!.month, fechaFinal!.day, 0, 0, 0).add(const Duration(days: 1));
+        print('[DEBUG] Enviando filtro fechas: desde = \\${desdeInicio.toIso8601String()} hasta = \\${hastaExclusivo.toIso8601String()}');
         final ventas = await boletasProvider.getTrimedDateArray(
-          _formatearFecha(fechaInicial!),
-          _formatearFecha(fechaFinal!)
+          desdeInicio.toIso8601String(),
+          hastaExclusivo.toIso8601String(),
         );
+        print('[DEBUG] Respuesta boletasProvider.getTrimedDateArray: \\${ventas.length} ventas');
+        if (ventas.isNotEmpty) {
+          print('[DEBUG] Primera boleta: \\${ventas.first.toJson()}');
+        }
         boletasFiltradas.addAll(ventas);
       } else {
         final ventas = await boletasProvider.getAllByUser();
+        print('[DEBUG] Respuesta boletasProvider.getAllByUser: \\${ventas.length} ventas');
+        if (ventas.isNotEmpty) {
+          print('[DEBUG] Primera boleta: \\${ventas.first.toJson()}');
+        }
         boletasFiltradas.addAll(ventas);
       }
     } catch (e) {
       // Manejo simple de error
+      print('[ERROR] al cargar ventas: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al cargar ventas: $e')),
       );

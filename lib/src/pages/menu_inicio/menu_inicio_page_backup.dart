@@ -233,7 +233,7 @@ class _MenuInicioPageState extends State<MenuInicioPage>
         } else if (rolInt == 2) {
           Get.offAll(() => VentasPage());
         } else if (rolInt == 3) {
-          Get.toNamed('/cliente_caja_antiguo');
+          Get.toNamed('/inicio/cliente/caja/create_antiguo');
         } else {
           Get.snackbar('Rol desconocido', 'No se reconoce el rol del usuario.');
         }

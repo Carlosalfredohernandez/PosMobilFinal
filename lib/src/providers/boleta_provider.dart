@@ -6,7 +6,8 @@ class BoletaProvider {
   static const String _trackingUrl = 'https://divine-commitment-production-a0ed.up.railway.app/api/v1/tracking';
 
   /// Genera una boleta electrónica en el sistema DTE
-  Future<String?> generarBoleta(Map<String, dynamic> boletaData) async {
+  /// Ahora retorna el objeto completo (id, ted_dd, etc)
+  Future<Map<String, dynamic>?> generarBoleta(Map<String, dynamic> boletaData) async {
     final url = Uri.parse('$_baseUrl/generar');
     final response = await http.post(
       url,
@@ -20,7 +21,7 @@ class BoletaProvider {
     print('SII API body: \\${response.body}');
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      return data['id']?.toString(); // ID de la boleta generada
+      return data;
     } else {
       // Mostrar error detallado en consola
       print('Error al generar boleta SII: status=\\${response.statusCode}, body=\\${response.body}');

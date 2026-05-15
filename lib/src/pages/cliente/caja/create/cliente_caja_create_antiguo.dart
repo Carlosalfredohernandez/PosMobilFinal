@@ -262,57 +262,76 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
             height: 100,
             child: _totalToPay(context),
           ),
-          appBar: PreferredSize(
-            preferredSize: Size.fromHeight(60),
-            child: AppBar(
-              automaticallyImplyLeading: false, // No mostrar la flecha automática
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back),
-                tooltip: 'Volver al menú general',
-                onPressed: () {
-                  controlador.limpiarCarrito();
-                  controlador.codigoBarraController.clear();
-                  Get.toNamed('/menugeneral');
-                },
-              ),
-              title: Row(
-                children: [
-                  Expanded(child: _campoCodigoBarra(context)),
-                ],
-              ),
-              actions: [
-                _iconSearch(context),
-                _iconScan(),
-                IconButton(
-                  icon: Icon(Icons.settings_bluetooth),
-                  tooltip: 'Configurar impresora',
-                  onPressed: () async {
-                    await Get.toNamed('/configuraciones/impresora');
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.scanner),
-                  tooltip: 'Prueba ESC/POS',
-                  onPressed: () {
-                    imprimirPruebaEscPos();
-                  },
-                ),
-              ],
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back),
+              tooltip: 'Volver al menú general',
+              onPressed: () {
+                controlador.limpiarCarrito();
+                controlador.codigoBarraController.clear();
+                Get.toNamed('/menugeneral');
+              },
             ),
+            title: Text(''),
+            backgroundColor: Theme.of(context).primaryColor,
+            elevation: 0,
           ),
           resizeToAvoidBottomInset: true,
-          body: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: controlador.selectedProducts.length > 0
-                ? ListView.builder(
-                    padding: EdgeInsets.only(top: 8),
-                    itemCount: controlador.selectedProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = controlador.selectedProducts[index];
-                      return _cardProduct(product);
-                    },
-                  )
-                : Center(child: Text('No hay ningun producto agregado aun')),
+          body: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                color: Theme.of(context).primaryColor,
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _campoCodigoBarra(context)),
+                        _iconSearch(context),
+                        _iconScan(),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.settings_bluetooth, color: Colors.white),
+                          tooltip: 'Configurar impresora',
+                          onPressed: () async {
+                            await Get.toNamed('/configuraciones/impresora');
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.scanner, color: Colors.white),
+                          tooltip: 'Prueba ESC/POS',
+                          onPressed: () {
+                            imprimirPruebaEscPos();
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                  child: controlador.selectedProducts.length > 0
+                      ? ListView.builder(
+                          padding: EdgeInsets.only(top: 8),
+                          itemCount: controlador.selectedProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = controlador.selectedProducts[index];
+                            return _cardProduct(product);
+                          },
+                        )
+                      : Center(child: Text('No hay ningun producto agregado aun')),
+                ),
+              ),
+            ],
           ),
         );
       }),
@@ -437,6 +456,9 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                   'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
                                   'xml_string': controlador.dteXmlString ?? '',
                                 });
+                                // Limpiar carrito y campo de código de barras al volver del PDF
+                                controlador.limpiarCarrito();
+                                controlador.codigoBarraController.clear();
                               } else if (opcion == 'bluetooth') {
                                 // Genera el PDF y lo imprime como imagen
                                 final pdf = pw.Document();
@@ -455,7 +477,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                           pw.Text('Detalle de productos/servicios:'),
                                           ...controlador.selectedProducts.map((p) => pw.Bullet(text: '${p.nombreProducto ?? ''} - ${p.precioVenta ?? ''} x${p.cantidad ?? 1}')),
                                           pw.SizedBox(height: 10),
-                                          pw.Text('Total: \$${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                          pw.Text('Total: \${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                                           pw.SizedBox(height: 20),
                                           pw.Divider(),
                                           pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),

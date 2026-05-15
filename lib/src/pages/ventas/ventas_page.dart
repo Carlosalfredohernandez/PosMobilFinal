@@ -266,6 +266,7 @@ Future<void> _finalizarVenta(CarritoController carritoController) async {
       return;
     }
     final boletaId = boletaSiiResponse['id']?.toString() ?? '';
+    final folioReal = boletaSiiResponse['folio']?.toString() ?? boletaId;
     // --- Decodificar xml_base64 y extraer TED ---
     String tedDd = '';
     if (boletaSiiResponse['xml_base64'] != null) {
@@ -286,8 +287,7 @@ Future<void> _finalizarVenta(CarritoController carritoController) async {
       AlertDialog(
         title: const Text('¿Qué desea hacer?'),
         content: const Text(
-          'La venta fue registrada en ambos sistemas. ¿Desea ver el PDF o imprimir la boleta?',
-        ),
+          'La venta fue registrada en ambos sistemas. ¿Desea ver el PDF o imprimir la boleta?'),
         actions: [
           TextButton(
             onPressed: () => Get.back(result: 'pdf'),
@@ -303,7 +303,7 @@ Future<void> _finalizarVenta(CarritoController carritoController) async {
     if (opcion == 'pdf') {
       // Navegar a la misma página de PDF POS que usa la demo
       final boletaParaPdf = {
-        'folio': boletaId,
+        'folio': folioReal,
         'rut_emisor': '77710916-2', // O el valor real
         'razon_social': 'Tecnolasa Chile SpA', // O el valor real
         'sucursal': 'Sucursal Providencia',
@@ -323,7 +323,8 @@ Future<void> _finalizarVenta(CarritoController carritoController) async {
         'total': total,
         'ted_dd': tedDd,
       };
-      Get.toNamed('/boleta_pdf_pos', arguments: boletaParaPdf);
+      await Get.toNamed('/boleta_pdf_pos', arguments: boletaParaPdf);
+      Get.back(); // Volver a la pantalla principal después de cerrar el PDF
     } else if (opcion == 'imprimir') {
       Get.snackbar('Impresión', 'Funcionalidad de impresión directa aún no implementada en este flujo.');
     }

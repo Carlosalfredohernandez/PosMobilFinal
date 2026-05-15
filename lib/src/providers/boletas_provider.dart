@@ -92,7 +92,7 @@ class BoletasProvider extends GetConnect {
         'Authorization': userSession.sessionToken ?? ''
       }
     );
-
+    print('[DEBUG] getAllByUser response.body = ${response.body}');
     if (response.statusCode == 401) {
       Get.snackbar('Peticion denegada', 'Tu usuario no tiene permitido leer esta informacion');
       return [];
@@ -117,7 +117,7 @@ class BoletasProvider extends GetConnect {
         'Authorization': userSession.sessionToken ?? ''
       }
     );
-
+    print('[DEBUG] getTrimedDateArray response.body = ${response.body}');
     if (response.statusCode == 401) {
       Get.snackbar('Peticion denegada', 'Tu usuario no tiene permitido leer esta informacion');
       return [];
