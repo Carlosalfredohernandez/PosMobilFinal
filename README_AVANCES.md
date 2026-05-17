@@ -103,3 +103,10 @@ Fecha: 13-05-2026 (actualizado)
 	- Se corrigieron cierres de clase/función duplicados y errores de sintaxis.
 	- Se maneja defensivamente el null en precios y detalles.
 - El flujo de ventas ahora es robusto, seguro y preparado para pruebas integrales.
+## 8. Avances recientes (15-17-05-2026)
+
+- Ahora la pantalla cliente_caja_create_antiguo graba la boleta en backendposmobil después de emitir la boleta en SII, usando el folio del DTE como campo 'numero', igual que el flujo de ventas_page.
+- Se corrigió la navegación para usuarios con rol 3, apuntando a la ruta correcta '/inicio/cliente/caja/create_antiguo'.
+- Se realizó commit de respaldo antes de modificar la lógica de grabado en backend.
+- El flujo de emisión en cliente_caja_create_antiguo ahora garantiza que la venta queda registrada tanto en SII como en el backend propio, permitiendo trazabilidad y reportabilidad completa.
+- Se mantiene la limpieza del carrito y feedback al usuario tras la operación.

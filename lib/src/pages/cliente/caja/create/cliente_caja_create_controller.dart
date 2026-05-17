@@ -51,7 +51,8 @@ class ClienteCajaCreateController extends GetxController {
         return;
       }
       final boletaId = boletaResponse['id']?.toString() ?? '';
-      print('✅ Boleta generada con ID: $boletaId');
+      final folioDte = boletaResponse['folio']?.toString() ?? boletaId;
+      print('✅ Boleta generada con ID: $boletaId, folio: $folioDte');
       // Obtener XML del DTE autorizado
       final xml = await boletaProvider.obtenerXmlBoleta(boletaId);
       if (xml == null || xml.isEmpty) {
@@ -62,6 +63,67 @@ class ClienteCajaCreateController extends GetxController {
       dteXmlString = xml;
       dteXmlDocument = XmlDocument.parse(xml);
       dteBoletaId = boletaId;
+      // --- GRABAR EN BACKENDPOSMOBIL ---
+      try {
+        // Construir detalles
+        List<DetalleBoleta> detalles = selectedProducts.map((p) {
+          final precio = double.tryParse(p.precioVenta ?? '0') ?? 0.0;
+          final cantidad = p.cantidad ?? 0;
+          return DetalleBoleta(
+            idProducto: p.id,
+            nombreProducto: p.nombreProducto,
+            cantidad: cantidad.toString(),
+            valorLinea: precio.toString(),
+            totalLinea: (precio * cantidad).toInt(),
+          );
+        }).toList();
+
+        // Obtener empresa desde usuarioempresa en GetStorage
+        final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
+        String? empresa = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['empresa'] != null)
+            ? usuarioEmpresaRaw['empresa'].toString()
+            : '0';
+        String? codigoLocal = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['local_asignado'] != null)
+            ? usuarioEmpresaRaw['local_asignado'].toString()
+            : (sesionUsuario.localOficina ?? '');
+        Inventario inventario = Inventario(
+          productos: selectedProducts.toList(),
+          fecha: DateTime.now().toIso8601String(),
+          idCliente: empresa,
+          local: int.tryParse(codigoLocal) ?? 0,
+          idUsuarioE: sesionUsuario.id?.toString(),
+        );
+
+        List<Map<String, dynamic>> productosBackend = selectedProducts.map((p) {
+          final map = p.toJson();
+          if (p.precioVenta != null) {
+            map['precio_venta'] = p.precioVenta;
+          }
+          return map;
+        }).toList();
+
+        Boleta boleta = Boleta(
+          numero: folioDte, // Usar folio del DTE
+          usuario: sesionUsuario.id?.toString(),
+          localUsuario: sesionUsuario.localOficina ?? '',
+          fecha: DateTime.now().toIso8601String(),
+          valor: total.value.toStringAsFixed(0),
+          formaPago: formaPago,
+          productos: productosBackend.cast(),
+          detalle: detalles,
+          inventario: inventario,
+        );
+
+        final response = await boletasProvider.create(boleta);
+        if (response.success == true) {
+          print('✅ Boleta registrada en backendposmobil');
+        } else {
+          print('❌ Error backendposmobil: \\${response.message}');
+        }
+      } catch (e) {
+        print('❌ Error grabando en backendposmobil: $e');
+      }
+      // --- FIN GRABADO BACKEND ---
       Get.snackbar('✅ Éxito', 'Boleta SII emitida y autorizada');
       update();
     } catch (e) {
