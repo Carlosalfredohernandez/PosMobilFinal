@@ -378,123 +378,153 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
     print('_cashBack llamado');
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         double pagoLocal = controlador.pago.value;
         return StatefulBuilder(
           builder: (context, setState) {
             double total = controlador.total.value;
             double cambio = pagoLocal - total;
+            final bool pagoSuficiente = pagoLocal >= total;
             return AlertDialog(
-              title: Text('Terminar venta al contado'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: Row(
+                children: [
+                  Icon(Icons.attach_money, color: Colors.green, size: 28),
+                  SizedBox(width: 8),
+                  Text('EFECTIVO', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ListTile(
-                      title: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text('Cantidad recibida', style: TextStyle(color: Colors.blue, fontSize: 14)),
-                          TextField(
-                            keyboardType: TextInputType.number,
-                            onChanged: (value) {
-                              setState(() {
-                                pagoLocal = double.tryParse(value) ?? 0.0;
-                              });
-                            },
-                          ),
-                        ],
+                    Text('Ingrese el monto recibido:', style: TextStyle(fontSize: 15, color: Colors.black87)),
+                    SizedBox(height: 8),
+                    TextField(
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(Icons.payments, color: Colors.blue),
+                        hintText: 'Cantidad recibida',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.grey[100],
                       ),
-                      leading: Text('\u0000', style: TextStyle(fontSize: 25)),
-                      subtitle: Text('¿Con cuanto paga el cliente?', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                      onChanged: (value) {
+                        setState(() {
+                          pagoLocal = double.tryParse(value) ?? 0.0;
+                        });
+                      },
                     ),
-                    SizedBox(height: 20),
-                    Text(
-                      "TOTAL: \$${total.toStringAsFixed(0)}",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    Text(
-                      "PAGO: \$${pagoLocal.toStringAsFixed(0)}",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    Text(
-                      "CAMBIO: \$${cambio.toStringAsFixed(0)}",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    SizedBox(height: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ElevatedButton(
-                          onPressed: () async {
-                            await controlador.emitirBoletaSii(context: context);
-                            // Si se generó el XML, preguntar acción al usuario
-                            if ((controlador.dteXmlString ?? '').isNotEmpty) {
-                              print('DEBUG flujo principal: folio = \\${controlador.dteBoletaId}');
-                              print('DEBUG flujo principal: xml_string =');
-                              print(controlador.dteXmlString);
-                              Navigator.of(context).pop(); // Cierra el diálogo primero
-                              final opcion = await showDialog<String>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: Text('¿Qué desea hacer?'),
-                                  content: Text('¿Ver PDF de la boleta o imprimir por Bluetooth?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop('pdf'),
-                                      child: Text('Ver PDF'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop('bluetooth'),
-                                      child: Text('Imprimir'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (opcion == 'pdf') {
-                                await Get.toNamed('/boleta_pdf_pos', arguments: {
-                                  'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
-                                  'xml_string': controlador.dteXmlString ?? '',
-                                });
-                                // Limpiar carrito y campo de código de barras al volver del PDF
-                                controlador.limpiarCarrito();
-                                controlador.codigoBarraController.clear();
-                              } else if (opcion == 'bluetooth') {
-                                // Genera el PDF y lo imprime como imagen
-                                final pdf = pw.Document();
-                                pdf.addPage(
-                                  pw.Page(
-                                    build: (pw.Context context) {
-                                      return pw.Column(
-                                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                        children: [
-                                          pw.Text('BOLETA ELECTRÓNICA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                                          pw.SizedBox(height: 10),
-                                          pw.Text('Emisor: Empresa de Ejemplo SpA'),
-                                          pw.Text('RUT: 76.123.456-7'),
-                                          pw.Text('Fecha: ${DateTime.now().toString().substring(0, 16)}'),
-                                          pw.SizedBox(height: 10),
-                                          pw.Text('Detalle de productos/servicios:'),
-                                          ...controlador.selectedProducts.map((p) => pw.Bullet(text: '${p.nombreProducto ?? ''} - ${p.precioVenta ?? ''} x${p.cantidad ?? 1}')),
-                                          pw.SizedBox(height: 10),
-                                          pw.Text('Total: \${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                                          pw.SizedBox(height: 20),
-                                          pw.Divider(),
-                                          pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                                          pw.Text('SII: 2026-05-01T12:00:00Z'),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                );
-                                await _imprimirPdfComoImagen(pdf);
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                          child: Text('Emitir Boleta SII'),
+                        Text('TOTAL:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text('\$${total.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue)),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('PAGO:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text('\$${pagoLocal.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black)),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('CAMBIO:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          '\$${cambio.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: cambio < 0 ? Colors.red : Colors.blue,
+                          ),
                         ),
                       ],
+                    ),
+                    SizedBox(height: 18),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.receipt_long),
+                      label: Text('Emitir Boleta SII'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: pagoSuficiente ? Colors.orange : Colors.grey,
+                        foregroundColor: Colors.white,
+                        textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        minimumSize: Size(0, 48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: pagoSuficiente
+                          ? () async {
+                              await controlador.emitirBoletaSii(context: context);
+                              if ((controlador.dteXmlString ?? '').isNotEmpty) {
+                                print('DEBUG flujo principal: folio = \\${controlador.dteBoletaId}');
+                                print('DEBUG flujo principal: xml_string =');
+                                print(controlador.dteXmlString);
+                                Navigator.of(context).pop();
+                                final opcion = await showDialog<String>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text('¿Qué desea hacer?'),
+                                    content: Text('¿Ver PDF de la boleta o imprimir por Bluetooth?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop('pdf'),
+                                        child: Text('Ver PDF'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop('bluetooth'),
+                                        child: Text('Imprimir'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (opcion == 'pdf') {
+                                  await Get.toNamed('/boleta_pdf_pos', arguments: {
+                                    'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
+                                    'xml_string': controlador.dteXmlString ?? '',
+                                  });
+                                  controlador.limpiarCarrito();
+                                  controlador.codigoBarraController.clear();
+                                } else if (opcion == 'bluetooth') {
+                                  final pdf = pw.Document();
+                                  pdf.addPage(
+                                    pw.Page(
+                                      build: (pw.Context context) {
+                                        return pw.Column(
+                                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                          children: [
+                                            pw.Text('BOLETA ELECTRÓNICA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                                            pw.SizedBox(height: 10),
+                                            pw.Text('Emisor: Empresa de Ejemplo SpA'),
+                                            pw.Text('RUT: 76.123.456-7'),
+                                            pw.Text('Fecha: \${DateTime.now().toString().substring(0, 16)}'),
+                                            pw.SizedBox(height: 10),
+                                            pw.Text('Detalle de productos/servicios:'),
+                                            ...controlador.selectedProducts.map((p) => pw.Bullet(text: '\${p.nombreProducto ?? ''} - \${p.precioVenta ?? ''} x\${p.cantidad ?? 1}')),
+                                            pw.SizedBox(height: 10),
+                                            pw.Text('Total: \${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                            pw.SizedBox(height: 20),
+                                            pw.Divider(),
+                                            pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                            pw.Text('SII: 2026-05-01T12:00:00Z'),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  );
+                                  await _imprimirPdfComoImagen(pdf);
+                                }
+                              }
+                            }
+                          : null,
                     ),
                   ],
                 ),
@@ -538,61 +568,51 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
   Widget _cardProduct(Producto product) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 5),
-      child: Row(
+      child: Column(
         children: [
-          SizedBox(width: 5),
+          Divider(height: 1, color: Colors.grey[300]),
           Container(
-            width: MediaQuery.of(context).size.height * 0.14,
-            child: Text(product.nombreProducto!.length > 30
-                ? product.nombreProducto!.substring(0,30)
-                : product.nombreProducto ?? '' ,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            alignment: Alignment.center,
+            margin: EdgeInsets.only(left: 20, top: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Text(
+                  product.nombreProducto ?? '',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                _textPrice(product),
+                _buttonsAddOrRemove(product),
+              ],
+            ),
           ),
-          Spacer(),
-
-          Container(width: MediaQuery.of(context).size.height * 0.12, child: _buttonsAddOrRemove(product)),
-          Spacer(),
-
-          Container(width: MediaQuery.of(context).size.height * 0.05, child: Text(product.precioVenta ?? '', style: TextStyle(fontWeight: FontWeight.bold))),
-          Spacer(),
-
-          Container(width: MediaQuery.of(context).size.height * 0.05, child: _textPrice(product)),
-          Spacer(),
-
-          Container(width: MediaQuery.of(context).size.height * 0.04, child: _iconDelete(product))
         ],
       ),
     );
   }
-
-  Widget _iconDelete(Producto product) {
-    return IconButton(
-        onPressed: () => controlador.deleteItem(product),
-        icon: Icon(
-          Icons.delete,
-          color: Colors.red,
-        )
-    );
   }
 
   Widget _iconScan() {
     return Container(
       margin: EdgeInsets.only(left: 5, right: 5),
-      child: IconButton(
-        onPressed: () async {
-          String? barcode = await _scanBarcodeMobileScanner(context);
-          if (barcode != null && barcode.isNotEmpty) {
-            await controlador.scanBarcodeMobileScanner(
-              barcode,
-              context,
-              (codigo) async {
-                await controlador.showProductoNoExisteDialog(context, codigo);
-              },
-            );
-          }
-        },
-        icon: Container(
-          child: Icon(
+      child: Builder(
+        builder: (context) => IconButton(
+          onPressed: () async {
+            String? barcode = await _scanBarcodeMobileScanner(context);
+            if (barcode != null && barcode.isNotEmpty) {
+              await controlador.scanBarcodeMobileScanner(
+                barcode,
+                context,
+                (codigo) async {
+                  await controlador.showProductoNoExisteDialog(context, codigo);
+                },
+              );
+            }
+          },
+          icon: Icon(
             Icons.qr_code_scanner,
             color: Colors.black,
           ),
@@ -601,29 +621,19 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
     );
   }
 
-  /// Escaneo real usando MobileScanner
+  // Función auxiliar para escanear código de barras usando MobileScanner
   Future<String?> _scanBarcodeMobileScanner(BuildContext context) async {
     String? scannedCode;
     await showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) {
         return Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            title: const Text('Escanear código de barras'),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            ],
-          ),
+          appBar: AppBar(title: Text('Escanear código de barras')),
           body: MobileScanner(
+            allowDuplicates: false,
             onDetect: (capture) {
               final List<Barcode> barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+              if (barcodes.isNotEmpty) {
                 scannedCode = barcodes.first.rawValue;
                 Navigator.of(context).pop();
               }
@@ -636,8 +646,10 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
   }
 
 
-
-  Widget _iconSearch(BuildContext context) {
+          return Scaffold(
+            appBar: AppBar(title: Text('Escanear código de barras')),
+            body: MobileScanner(
+            formats: [BarcodeFormat.all],
     return Container(
       margin: EdgeInsets.only(left: 5, right: 5),
       child: IconButton(

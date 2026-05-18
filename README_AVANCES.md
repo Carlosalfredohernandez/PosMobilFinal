@@ -110,3 +110,50 @@ Fecha: 13-05-2026 (actualizado)
 - Se realizó commit de respaldo antes de modificar la lógica de grabado en backend.
 - El flujo de emisión en cliente_caja_create_antiguo ahora garantiza que la venta queda registrada tanto en SII como en el backend propio, permitiendo trazabilidad y reportabilidad completa.
 - Se mantiene la limpieza del carrito y feedback al usuario tras la operación.
+
+## 9. Implementar la app en Play Store
+
+- **Preparación:**  
+  - Configura el archivo `android/app/build.gradle` con el nombre de paquete, versión y firma digital (keystore).
+  - Genera el archivo de firma (`keystore.jks`) y configura las variables en `key.properties`.
+  - Asegúrate de que el ícono y los permisos estén correctamente definidos en `AndroidManifest.xml`.
+
+- **Compilación:**  
+  - Ejecuta `flutter build appbundle` para generar el archivo `.aab` requerido por Google Play.
+  - Verifica que la app funcione correctamente en modo release.
+
+- **Publicación:**  
+  - Ingresa a Google Play Console, crea una aplicación y sube el archivo `.aab`.
+  - Completa la ficha de Play Store, políticas de privacidad y pruebas internas.
+  - Sube capturas de pantalla y define los testers.
+  - Espera la revisión de Google y publica la app.
+
+
+## 10. Integración con Transbank (POS físico)
+- **Notas técnicas:**  
+  - La integración requiere conocer el modelo de POS y su protocolo de comunicación Bluetooth.
+  - Si existe SDK nativo (Android/iOS), se debe implementar un canal de plataforma Flutter para enviar el monto y recibir el resultado.
+  - Si el POS solo opera con la app oficial de Transbank, la app debe esperar confirmación manual del cajero.
+  - El flujo está preparado para mostrar feedback inmediato al usuario según el resultado de la transacción.
+
+## 11. Avances y errores recientes (18-05-2026)
+
+- Se detectó y corrigió un crash visual en el diálogo de cobro en efectivo (pantalla cliente_caja_create_antiguo):
+  - El error era causado por la presencia de un código de color ANSI (`\u001b[32m`) en el widget de texto del total, lo que no es soportado por Flutter y puede provocar cierre inesperado de la app o errores de renderizado.
+  - Se eliminó dicho código y se validó que el diálogo funciona correctamente, mostrando el total en azul sin caracteres extraños.
+- Se revisó línea por línea la función _cashBack y el flujo de cobro para descartar otros errores de sintaxis o lógica.
+- No se detectaron errores de compilación tras la corrección, pero se recomienda limpiar caché y reiniciar el workspace si persisten problemas visuales o de estado.
+- Se documenta este ajuste para futuras referencias y para evitar el uso de códigos de color ANSI en widgets de Flutter.
+
+- **Flujo de pago presencial:**  
+  - Al cerrar la venta, el usuario elige el método de pago: efectivo, débito o crédito.
+  - Si es débito/crédito, se muestra un diálogo: "Opere tarjeta en POS".
+  - El cliente pasa la tarjeta en el POS físico (Bluetooth) y digita la clave.
+  - La app espera la respuesta del POS (aprobada/rechazada).
+  - Si la transacción es exitosa, se cierra la venta y se emite la boleta; si es rechazada, se permite reintentar o cambiar el método.
+
+- **Notas técnicas:**  
+  - La integración requiere conocer el modelo de POS y su protocolo de comunicación Bluetooth.
+  - Si existe SDK nativo (Android/iOS), se debe implementar un canal de plataforma Flutter para enviar el monto y recibir el resultado.
+  - Si el POS solo opera con la app oficial de Transbank, la app debe esperar confirmación manual del cajero.
+  - El flujo está preparado para mostrar feedback inmediato al usuario según el resultado de la transacción.
