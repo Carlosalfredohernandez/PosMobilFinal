@@ -1,3 +1,18 @@
+# 9. Consulta certificación software de mercado
+
+**¿Es necesario certificar el software ante el SII si desarrollo y comercializo sistemas de facturación electrónica?**
+
+Sí, si tu empresa desarrolla software de mercado para emitir documentos tributarios electrónicos (como facturas o boletas electrónicas) y lo comercializa a terceros, debes certificarlo ante el Servicio de Impuestos Internos (SII) de Chile.
+Esto implica:
+
+- Registrar tu empresa y tu software como proveedor de software de mercado en el SII.
+- Pasar por un proceso de certificación técnica y funcional, donde el SII valida que tu sistema cumple con los requisitos legales y técnicos.
+- Realizar pruebas de emisión, recepción y validación de DTE en ambiente de certificación.
+- Una vez aprobado, tu software aparecerá en la lista oficial de “Software de Mercado Certificado” del SII.
+
+**Referencias útiles:**
+- [Portal SII: Certificación de Software de Mercado](https://www.sii.cl/servicios_online/1041-1592.html)
+- [Manual de Certificación de Software de Mercado SII (PDF)](https://www.sii.cl/factura_electronica/manuales/certificacion_software_mercado.pdf)
 # POSMOBIL - Resumen de Avances y Estabilidad
 
 

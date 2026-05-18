@@ -340,32 +340,86 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
 
   Widget _totalToPay(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Divider(height: 1, color: Colors.grey[300]),
-        Container(
-          alignment: Alignment.center,
-          margin: EdgeInsets.only(left: 20, top: 20),
+        Padding(
+          padding: const EdgeInsets.only(left: 20, top: 16, right: 20, bottom: 4),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Text(
-                "TOTAL: \$${controlador.total.value.toStringAsFixed(0)}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+              Expanded(
+                child: Text(
+                  "TOTAL: \$${controlador.total.value.toStringAsFixed(0)}",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 30),
-                child: ElevatedButton(
-                  onPressed: () {
-                    print('Cobrar presionado');
-                    setState(() {
-                      controlador.formaPago = 'EFECTIVO';
-                      _cashBack(context);
-                    });
-                  },
-                  child: Text('Cobrar'),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.attach_money, size: 18),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      textStyle: TextStyle(fontSize: 13),
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        controlador.formaPago = 'EFECTIVO';
+                        _cashBack(context);
+                      });
+                    },
+                    label: Text('Efectivo'),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.credit_card, size: 18),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      textStyle: TextStyle(fontSize: 13),
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    ),
+                    onPressed: () {
+                      Get.snackbar('Próximamente', 'Pago con Débito estará disponible en futuras versiones');
+                    },
+                    label: Text('Débito'),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.credit_card_outlined, size: 18),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey,
+                      textStyle: TextStyle(fontSize: 13),
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    ),
+                    onPressed: () {
+                      Get.snackbar('Próximamente', 'Pago con Crédito estará disponible en futuras versiones');
+                    },
+                    label: Text('Crédito'),
+                  ),
                 ),
               ),
             ],
