@@ -413,6 +413,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
   void _cashBack(BuildContext context) {
     double pagoLocal = controlador.pago.value;
     String? errorMsg;
+    final TextEditingController pagoController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) {
@@ -420,35 +421,94 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
         double cambio = pagoLocal - total;
         return StatefulBuilder(
           builder: (context, setState) {
+            bool falta = pagoLocal < total;
             return AlertDialog(
-              title: Text('Terminar venta al contado'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: Center(
+                child: Text('Venta al contado', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ListTile(
-                      title: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
+                    // Input con icono y limpiar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Row(
                         children: [
-                          Text('Cantidad recibida', style: TextStyle(color: Colors.blue, fontSize: 14)),
-                          TextField(
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                pagoLocal = double.tryParse(value) ?? 0.0;
-                                cambio = pagoLocal - total;
-                                errorMsg = null;
-                              });
-                            },
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Icon(Icons.attach_money, color: Colors.grey[700]),
                           ),
+                          Expanded(
+                            child: TextField(
+                              controller: pagoController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: '¿Con cuánto paga?',
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  pagoLocal = double.tryParse(value) ?? 0.0;
+                                  cambio = pagoLocal - total;
+                                  errorMsg = null;
+                                });
+                              },
+                            ),
+                          ),
+                          if ((pagoController.text.isNotEmpty))
+                            IconButton(
+                              icon: Icon(Icons.clear, size: 20),
+                              onPressed: () {
+                                pagoController.clear();
+                                setState(() {
+                                  pagoLocal = 0.0;
+                                  cambio = -total;
+                                });
+                              },
+                            ),
                         ],
                       ),
-                      leading: SizedBox.shrink(),
-                      subtitle: Text('¿Con cuanto paga el cliente?', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     ),
+                    SizedBox(height: 18),
+                    // Resumen de montos
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total:', style: TextStyle(fontSize: 16)),
+                        Text('${total.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Pago:', style: TextStyle(fontSize: 16)),
+                        Text('${pagoLocal.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue)),
+                      ],
+                    ),
+                    if (falta)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Falta:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 16)),
+                          Text('₲${(total - pagoLocal).toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 18)),
+                        ],
+                      )
+                    else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Cambio:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 16)),
+                          Text('₲${(cambio).toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 18)),
+                        ],
+                      ),
                     if (errorMsg != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
@@ -457,125 +517,125 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                           style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                         ),
                       ),
-                    SizedBox(height: 20),
-                    Text(
-                      "TOTAL: \$${total.toStringAsFixed(0)}",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    Text(
-                      "PAGO: \$${pagoLocal.toStringAsFixed(0)}",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    Text(
-                      "CAMBIO: \$${cambio.toStringAsFixed(0)}",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    SizedBox(height: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () async {
-                            if (pagoLocal < total) {
-                              setState(() {
-                                errorMsg = 'El monto recibido debe ser mayor o igual al total.';
+                    SizedBox(height: 18),
+                    // Botón Emitir Boleta
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.receipt_long, color: Colors.white),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: () async {
+                          if (pagoLocal < total) {
+                            setState(() {
+                              errorMsg = 'El monto recibido debe ser mayor o igual al total.';
+                            });
+                            return;
+                          }
+                          await controlador.emitirBoletaSii(context: context);
+                          if ((controlador.dteXmlString ?? '').isNotEmpty) {
+                            Navigator.of(context).pop();
+                            final opcion = await showDialog<String>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text('¿Qué desea hacer?'),
+                                content: Text('¿Ver PDF de la boleta o imprimir por Bluetooth?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop('pdf'),
+                                    child: Text('Ver PDF'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop('bluetooth'),
+                                    child: Text('Imprimir'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (opcion == 'pdf') {
+                              await Get.toNamed('/boleta_pdf_pos', arguments: {
+                                'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
+                                'xml_string': controlador.dteXmlString ?? '',
                               });
-                              return;
-                            }
-                            await controlador.emitirBoletaSii(context: context);
-                            if ((controlador.dteXmlString ?? '').isNotEmpty) {
-                              Navigator.of(context).pop();
-                              final opcion = await showDialog<String>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: Text('¿Qué desea hacer?'),
-                                  content: Text('¿Ver PDF de la boleta o imprimir por Bluetooth?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop('pdf'),
-                                      child: Text('Ver PDF'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop('bluetooth'),
-                                      child: Text('Imprimir'),
-                                    ),
-                                  ],
+                              controlador.limpiarCarrito();
+                              controlador.codigoBarraController.clear();
+                            } else if (opcion == 'bluetooth') {
+                              final pdf = pw.Document();
+                              pdf.addPage(
+                                pw.Page(
+                                  build: (pw.Context context) {
+                                    return pw.Column(
+                                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                      children: [
+                                        pw.Text('BOLETA ELECTRÓNICA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                                        pw.SizedBox(height: 10),
+                                        pw.Text('Emisor: Empresa de Ejemplo SpA'),
+                                        pw.Text('RUT: 76.123.456-7'),
+                                        pw.Text('Fecha: ${DateTime.now().toString().substring(0, 16)}'),
+                                        pw.SizedBox(height: 10),
+                                        pw.Text('Detalle de productos/servicios:'),
+                                        ...controlador.selectedProducts.map((p) => pw.Bullet(text: '${p.nombreProducto ?? ''} - ${p.precioVenta ?? ''} x${p.cantidad ?? 1}')),
+                                        pw.SizedBox(height: 10),
+                                        pw.Text('Total: \\${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                        pw.SizedBox(height: 20),
+                                        pw.Divider(),
+                                        pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                        pw.Text('SII: 2026-05-01T12:00:00Z'),
+                                      ],
+                                    );
+                                  },
                                 ),
                               );
-                              if (opcion == 'pdf') {
-                                await Get.toNamed('/boleta_pdf_pos', arguments: {
-                                  'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
-                                  'xml_string': controlador.dteXmlString ?? '',
-                                });
-                                controlador.limpiarCarrito();
-                                controlador.codigoBarraController.clear();
-                              } else if (opcion == 'bluetooth') {
-                                final pdf = pw.Document();
-                                pdf.addPage(
-                                  pw.Page(
-                                    build: (pw.Context context) {
-                                      return pw.Column(
-                                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                        children: [
-                                          pw.Text('BOLETA ELECTRÓNICA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                                          pw.SizedBox(height: 10),
-                                          pw.Text('Emisor: Empresa de Ejemplo SpA'),
-                                          pw.Text('RUT: 76.123.456-7'),
-                                          pw.Text('Fecha: ${DateTime.now().toString().substring(0, 16)}'),
-                                          pw.SizedBox(height: 10),
-                                          pw.Text('Detalle de productos/servicios:'),
-                                          ...controlador.selectedProducts.map((p) => pw.Bullet(text: '${p.nombreProducto ?? ''} - ${p.precioVenta ?? ''} x${p.cantidad ?? 1}')),
-                                          pw.SizedBox(height: 10),
-                                          pw.Text('Total: \\${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                                          pw.SizedBox(height: 20),
-                                          pw.Divider(),
-                                          pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                                          pw.Text('SII: 2026-05-01T12:00:00Z'),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                );
-                                await _imprimirPdfComoImagen(pdf);
-                              }
+                              await _imprimirPdfComoImagen(pdf);
                             }
-                          },
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                          child: Text('Emitir Boleta SII'),
+                          }
+                        },
+                        label: Text('Emitir Boleta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white)),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    // Botón Finalizar
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: Icon(Icons.check_circle_outline, color: Colors.black87),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          side: BorderSide(color: Colors.grey[400]!),
+                          padding: EdgeInsets.symmetric(vertical: 14),
                         ),
-                      ],
+                        onPressed: () async {
+                          final exito = await controlador.createBill(context);
+                          if (exito == true) {
+                            final result = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text('¿Imprimir boleta?'),
+                                content: Text('¿Desea imprimir la boleta?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(true),
+                                    child: Text('Sí'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: Text('No'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            // Aquí puedes manejar el resultado de imprimir o no
+                          }
+                        },
+                        label: Text('Finalizar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                      ),
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    final exito = await controlador.createBill(context);
-                    if (exito == true) {
-                      final result = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text('¿Imprimir boleta?'),
-                          content: Text('¿Desea imprimir la boleta?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: Text('Sí'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: Text('No'),
-                            ),
-                          ],
-                        ),
-                      );
-                      // Aquí puedes manejar el resultado de imprimir o no
-                    }
-                  },
-                  child: Text('Finalizar'),
-                ),
-              ],
             );
           },
         );
