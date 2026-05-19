@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:posmobilfinal/src/models/producto.dart';
 import 'package:posmobilfinal/src/pages/cliente/caja/create/cliente_caja_create_controller.dart';
@@ -198,7 +199,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
         final cantidad = (item['cantidad'] ?? 1).toString();
         final monto = (item['monto'] ?? 0).toString();
         await _bluetooth.printCustom('$cantidad x $nombre', 0, 0);
-        await _bluetooth.printCustom('[ S/ $monto', 0, 2);
+        await _bluetooth.printCustom('S/ $monto', 0, 2);
       }
       await _bluetooth.printNewLine();
       await _bluetooth.printCustom('TOTAL: ${boleta['total'] ?? 0}', 2, 2);
@@ -241,7 +242,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
 
   @override
   Widget build(BuildContext context) {
-    print('🟦 ClienteCajaCreatePage: build ejecutado');
+    // print('🟦 ClienteCajaCreatePage: build ejecutado'); // Solo para debug
     return WillPopScope(
       onWillPop: () async {
         controlador.limpiarCarrito();
@@ -255,13 +256,43 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
           );
         }
         return Scaffold(
-          bottomNavigationBar: _footerPagos(context),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Color.fromRGBO(245, 245, 245, 1),
+            ),
+            height: 100,
+            child: _totalToPay(context),
+          ),
           appBar: AppBar(
             automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back),
+              tooltip: 'Volver al menú general',
+              onPressed: () {
+                controlador.limpiarCarrito();
+                controlador.codigoBarraController.clear();
+                Get.toNamed('/menugeneral');
+              },
+            ),
             title: Text(''),
             backgroundColor: Theme.of(context).primaryColor,
             elevation: 0,
-            toolbarHeight: 34,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.settings_bluetooth, color: Colors.white),
+                tooltip: 'Configurar impresora',
+                onPressed: () async {
+                  await Get.toNamed('/configuraciones/impresora');
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.scanner, color: Colors.white),
+                tooltip: 'Prueba ESC/POS',
+                onPressed: () {
+                  imprimirPruebaEscPos();
+                },
+              ),
+            ],
           ),
           resizeToAvoidBottomInset: true,
           body: Column(
@@ -278,25 +309,6 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                         Expanded(child: _campoCodigoBarra(context)),
                         _iconSearch(context),
                         _iconScan(),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.settings_bluetooth, color: Colors.white),
-                          tooltip: 'Configurar impresora',
-                          onPressed: () async {
-                            await Get.toNamed('/configuraciones/impresora');
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.scanner, color: Colors.white),
-                          tooltip: 'Prueba ESC/POS',
-                          onPressed: () {
-                            imprimirPruebaEscPos();
-                          },
-                        ),
                       ],
                     ),
                   ],
@@ -324,100 +336,49 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
     );
   }
 
-  Widget _footerPagos(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Color.fromRGBO(245, 245, 245, 1),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)],
-      ),
-      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Línea 1: Botón EFECTIVO con total
-          Row(
+  Widget _totalToPay(BuildContext context) {
+    return Column(
+      children: [
+        Divider(height: 1, color: Colors.grey[300]),
+        Container(
+          alignment: Alignment.center,
+          margin: EdgeInsets.only(left: 20, top: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  icon: Icon(Icons.attach_money),
-                  label: Text(
-                    'Pagar Efectivo  ·  TOTAL: \$${controlador.total.value.toStringAsFixed(0)}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+              Text(
+                "TOTAL: \$${controlador.total.value.toStringAsFixed(0)}",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 30),
+                child: ElevatedButton(
                   onPressed: () {
                     controlador.formaPago = 'EFECTIVO';
                     _cashBack(context);
                   },
+                  child: Text('Cobrar'),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
-          // Línea 2: Botón DÉBITO
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  icon: Icon(Icons.credit_card),
-                  label: Text(
-                    'Pagar Débito',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  onPressed: () {
-                    controlador.formaPago = 'DEBITO';
-                    // Aquí puedes abrir el diálogo o flujo de pago con débito
-                    Get.snackbar('Débito', 'Funcionalidad en desarrollo');
-                  },
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          // Línea 3: Botón CRÉDITO
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  icon: Icon(Icons.credit_score),
-                  label: Text(
-                    'Pagar Crédito',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  onPressed: () {
-                    controlador.formaPago = 'CREDITO';
-                    // Aquí puedes abrir el diálogo o flujo de pago con crédito
-                    Get.snackbar('Crédito', 'Funcionalidad en desarrollo');
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
   void _cashBack(BuildContext context) {
-    print('_cashBack llamado');
+    double pagoLocal = controlador.pago.value;
+    String? errorMsg;
     showDialog(
       context: context,
       builder: (context) {
-        double pagoLocal = controlador.pago.value;
+        double total = controlador.total.value;
+        double cambio = pagoLocal - total;
         return StatefulBuilder(
           builder: (context, setState) {
-            double total = controlador.total.value;
-            double cambio = pagoLocal - total;
             return AlertDialog(
               title: Text('Terminar venta al contado'),
               content: SingleChildScrollView(
@@ -431,17 +392,30 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                           Text('Cantidad recibida', style: TextStyle(color: Colors.blue, fontSize: 14)),
                           TextField(
                             keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
                             onChanged: (value) {
                               setState(() {
                                 pagoLocal = double.tryParse(value) ?? 0.0;
+                                cambio = pagoLocal - total;
+                                errorMsg = null;
                               });
                             },
                           ),
                         ],
                       ),
-                      leading: Text('\u0000', style: TextStyle(fontSize: 25)),
+                      leading: SizedBox.shrink(),
                       subtitle: Text('¿Con cuanto paga el cliente?', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     ),
+                    if (errorMsg != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          errorMsg!,
+                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     SizedBox(height: 20),
                     Text(
                       "TOTAL: \$${total.toStringAsFixed(0)}",
@@ -461,13 +435,15 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                       children: [
                         ElevatedButton(
                           onPressed: () async {
+                            if (pagoLocal < total) {
+                              setState(() {
+                                errorMsg = 'El monto recibido debe ser mayor o igual al total.';
+                              });
+                              return;
+                            }
                             await controlador.emitirBoletaSii(context: context);
-                            // Si se generó el XML, preguntar acción al usuario
                             if ((controlador.dteXmlString ?? '').isNotEmpty) {
-                              print('DEBUG flujo principal: folio = \\${controlador.dteBoletaId}');
-                              print('DEBUG flujo principal: xml_string =');
-                              print(controlador.dteXmlString);
-                              Navigator.of(context).pop(); // Cierra el diálogo primero
+                              Navigator.of(context).pop();
                               final opcion = await showDialog<String>(
                                 context: context,
                                 builder: (context) => AlertDialog(
@@ -490,11 +466,9 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                   'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
                                   'xml_string': controlador.dteXmlString ?? '',
                                 });
-                                // Limpiar carrito y campo de código de barras al volver del PDF
                                 controlador.limpiarCarrito();
                                 controlador.codigoBarraController.clear();
                               } else if (opcion == 'bluetooth') {
-                                // Genera el PDF y lo imprime como imagen
                                 final pdf = pw.Document();
                                 pdf.addPage(
                                   pw.Page(
@@ -511,7 +485,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                           pw.Text('Detalle de productos/servicios:'),
                                           ...controlador.selectedProducts.map((p) => pw.Bullet(text: '${p.nombreProducto ?? ''} - ${p.precioVenta ?? ''} x${p.cantidad ?? 1}')),
                                           pw.SizedBox(height: 10),
-                                          pw.Text('Total: \${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                                          pw.Text('Total: \\${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                                           pw.SizedBox(height: 20),
                                           pw.Divider(),
                                           pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
