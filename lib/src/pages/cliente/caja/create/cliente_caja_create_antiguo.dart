@@ -331,6 +331,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
   }
 
   Widget _footerPagos(BuildContext context) {
+    bool hayProductos = controlador.selectedProducts.isNotEmpty;
     return Container(
       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
@@ -350,10 +351,14 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                 shape: StadiumBorder(),
                 padding: EdgeInsets.symmetric(vertical: 14),
               ),
-              onPressed: () {
-                controlador.formaPago = 'EFECTIVO';
-                _cashBack(context);
-              },
+              onPressed: hayProductos
+                  ? () {
+                      controlador.formaPago = 'EFECTIVO';
+                      _cashBack(context);
+                    }
+                  : () {
+                      Get.snackbar('Sin productos', 'Agrega productos antes de pagar');
+                    },
               label: Text(
                 'Pagar Efectivo  ·  TOTAL: \$${controlador.total.value.toStringAsFixed(0)}',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
@@ -371,12 +376,15 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                 shape: StadiumBorder(),
                 padding: EdgeInsets.symmetric(vertical: 14),
               ),
-              onPressed: () {
-                // Aquí puedes agregar la lógica de pago débito
-                controlador.formaPago = 'DEBITO';
-                // TODO: Implementar flujo de pago débito
-                Get.snackbar('Débito', 'Funcionalidad en desarrollo');
-              },
+              onPressed: hayProductos
+                  ? () {
+                      controlador.formaPago = 'DEBITO';
+                      // TODO: Implementar flujo de pago débito
+                      Get.snackbar('Débito', 'Funcionalidad en desarrollo');
+                    }
+                  : () {
+                      Get.snackbar('Sin productos', 'Agrega productos antes de pagar');
+                    },
               label: Text(
                 'Pagar Débito',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
@@ -394,12 +402,15 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                 shape: StadiumBorder(),
                 padding: EdgeInsets.symmetric(vertical: 14),
               ),
-              onPressed: () {
-                // Aquí puedes agregar la lógica de pago crédito
-                controlador.formaPago = 'CREDITO';
-                // TODO: Implementar flujo de pago crédito
-                Get.snackbar('Crédito', 'Funcionalidad en desarrollo');
-              },
+              onPressed: hayProductos
+                  ? () {
+                      controlador.formaPago = 'CREDITO';
+                      // TODO: Implementar flujo de pago crédito
+                      Get.snackbar('Crédito', 'Funcionalidad en desarrollo');
+                    }
+                  : () {
+                      Get.snackbar('Sin productos', 'Agrega productos antes de pagar');
+                    },
               label: Text(
                 'Pagar Crédito',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
@@ -597,40 +608,20 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                       ),
                     ),
                     SizedBox(height: 10),
-                    // Botón Finalizar
+                    // Botón Volver
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        icon: Icon(Icons.check_circle_outline, color: Colors.black87),
+                        icon: Icon(Icons.arrow_back, color: Colors.black87),
                         style: OutlinedButton.styleFrom(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           side: BorderSide(color: Colors.grey[400]!),
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
-                        onPressed: () async {
-                          final exito = await controlador.createBill(context);
-                          if (exito == true) {
-                            final result = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text('¿Imprimir boleta?'),
-                                content: Text('¿Desea imprimir la boleta?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(true),
-                                    child: Text('Sí'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(false),
-                                    child: Text('No'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            // Aquí puedes manejar el resultado de imprimir o no
-                          }
+                        onPressed: () {
+                          Navigator.of(context).pop();
                         },
-                        label: Text('Finalizar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                        label: Text('Volver', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                       ),
                     ),
                   ],
