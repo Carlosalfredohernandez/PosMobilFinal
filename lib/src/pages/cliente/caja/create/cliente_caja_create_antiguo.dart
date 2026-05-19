@@ -256,13 +256,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
           );
         }
         return Scaffold(
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: Color.fromRGBO(245, 245, 245, 1),
-            ),
-            height: 100,
-            child: _totalToPay(context),
-          ),
+          bottomNavigationBar: _footerPagos(context),
           appBar: AppBar(
             automaticallyImplyLeading: false,
             leading: IconButton(
@@ -336,37 +330,84 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
     );
   }
 
-  Widget _totalToPay(BuildContext context) {
-    return Column(
-      children: [
-        Divider(height: 1, color: Colors.grey[300]),
-        Container(
-          alignment: Alignment.center,
-          margin: EdgeInsets.only(left: 20, top: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Text(
-                "TOTAL: \$${controlador.total.value.toStringAsFixed(0)}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+  Widget _footerPagos(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Color.fromRGBO(245, 245, 245, 1),
+        border: Border(top: BorderSide(color: Colors.grey[300]!)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Línea 1: Pagar Efectivo
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: Icon(Icons.attach_money, color: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[600],
+                shape: StadiumBorder(),
+                padding: EdgeInsets.symmetric(vertical: 14),
               ),
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 30),
-                child: ElevatedButton(
-                  onPressed: () {
-                    controlador.formaPago = 'EFECTIVO';
-                    _cashBack(context);
-                  },
-                  child: Text('Cobrar'),
-                ),
+              onPressed: () {
+                controlador.formaPago = 'EFECTIVO';
+                _cashBack(context);
+              },
+              label: Text(
+                'Pagar Efectivo  ·  TOTAL: \$${controlador.total.value.toStringAsFixed(0)}',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
               ),
-            ],
+            ),
           ),
-        ),
-      ],
+          SizedBox(height: 8),
+          // Línea 2: Pagar Débito
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: Icon(Icons.credit_card, color: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                shape: StadiumBorder(),
+                padding: EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () {
+                // Aquí puedes agregar la lógica de pago débito
+                controlador.formaPago = 'DEBITO';
+                // TODO: Implementar flujo de pago débito
+                Get.snackbar('Débito', 'Funcionalidad en desarrollo');
+              },
+              label: Text(
+                'Pagar Débito',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
+              ),
+            ),
+          ),
+          SizedBox(height: 8),
+          // Línea 3: Pagar Crédito
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: Icon(Icons.credit_score, color: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple[700],
+                shape: StadiumBorder(),
+                padding: EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: () {
+                // Aquí puedes agregar la lógica de pago crédito
+                controlador.formaPago = 'CREDITO';
+                // TODO: Implementar flujo de pago crédito
+                Get.snackbar('Crédito', 'Funcionalidad en desarrollo');
+              },
+              label: Text(
+                'Pagar Crédito',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
   void _cashBack(BuildContext context) {
