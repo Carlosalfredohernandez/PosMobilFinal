@@ -105,7 +105,16 @@ class ClienteCajaCreateController extends GetxController {
         Boleta boleta = Boleta(
           numero: folioDte, // Usar folio del DTE
           usuario: sesionUsuario.id?.toString(),
-          localUsuario: sesionUsuario.localOficina ?? '',
+          localUsuario: (() {
+            final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
+            if (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['local_asignado'] != null && usuarioEmpresaRaw['local_asignado'].toString().isNotEmpty) {
+              return usuarioEmpresaRaw['local_asignado'].toString();
+            } else if (sesionUsuario.localOficina != null && sesionUsuario.localOficina!.isNotEmpty) {
+              return sesionUsuario.localOficina!;
+            } else {
+              return '1'; // Valor por defecto seguro
+            }
+          })(),
           fecha: DateTime.now().toIso8601String(),
           valor: total.value.toStringAsFixed(0),
           formaPago: formaPago,
@@ -441,7 +450,16 @@ class ClienteCajaCreateController extends GetxController {
       Boleta boleta = Boleta(
         numero: '123', // Valor fijo para pruebas
         usuario: sesionUsuario.id?.toString(),
-        localUsuario: sesionUsuario.localOficina ?? '',
+        localUsuario: (() {
+          final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
+          if (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['local_asignado'] != null && usuarioEmpresaRaw['local_asignado'].toString().isNotEmpty) {
+            return usuarioEmpresaRaw['local_asignado'].toString();
+          } else if (sesionUsuario.localOficina != null && sesionUsuario.localOficina!.isNotEmpty) {
+            return sesionUsuario.localOficina!;
+          } else {
+            return '1'; // Valor por defecto seguro
+          }
+        })(),
         fecha: DateTime.now().toIso8601String(),
         valor: total.value.toStringAsFixed(0),
         formaPago: formaPago,

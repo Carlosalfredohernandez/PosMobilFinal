@@ -43,6 +43,8 @@ class BoletasProvider extends GetConnect {
       Response? lastResponse;
 
       for (var attempt = 1; attempt <= 2; attempt++) {
+        // LOG del objeto boleta antes de enviar
+        print('[LOG] Enviando boleta al backend: ${boleta.toJson()}');
         final response = await post(
           '$url/create',
           boleta.toJson(),
