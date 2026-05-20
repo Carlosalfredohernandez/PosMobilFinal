@@ -32,7 +32,7 @@ class UsuarioEmpresaController extends GetxController {
   }
 
   Future<void> cargarUsuarios() async {
-    usuarios.value = await usuariosEmpresaProvider.findUsersE();
+    usuarios.value = await usuariosEmpresaProvider.findUsers();
   }
 
   Future<void> actualizarUsuario(

@@ -7,6 +7,8 @@ import 'package:posmobilfinal/src/providers/local_provider.dart';
 import 'package:posmobilfinal/src/providers/usuarios_empresa_provider.dart';
 import 'package:posmobilfinal/src/providers/usuarios_provider.dart';
 
+import 'package:posmobilfinal/src/models/usuario_empresa.dart';
+
 class MantenedoresMaestrosUsuariosController extends GetxController{
   List roles = ['USUARIO','CAJERO'].obs;
   LocalProvider localProvider = LocalProvider();
@@ -77,8 +79,17 @@ class MantenedoresMaestrosUsuariosController extends GetxController{
         // Crear nuevo usuario usando el modelo Usuario
         responseApi = await usuariosProvider.create(usuarioNuevo, rolId);
       } else {
-        // Actualizar usuario existente
-        responseApi = await usuariosEmpresaProvider.updateEm(usuarioNuevo, rolId, nombrelocal.value);
+        // Actualizar usuario existente (convertir Usuario a UsuarioEmpresa)
+        final usuarioEmpresa = UsuarioEmpresa(
+          id: usuarioNuevo.id,
+          rut: usuarioNuevo.rut,
+          nombreUsuario: usuarioNuevo.nombre,
+          password: usuarioNuevo.clave,
+          rol: rolId,
+          empresa: null, // Asigna el valor correcto si lo tienes
+          localAsignado: nombrelocal.value,
+        );
+        responseApi = await usuariosEmpresaProvider.update(usuarioEmpresa, rolId, nombrelocal.value);
       }
 
       if (responseApi.success == true ){

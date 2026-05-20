@@ -1,12 +1,13 @@
-﻿// 🏢 CONTROLADOR MANTENEDOR USUARIOS EMPRESA
-// Controlador para el mantenimiento de usuarios empresa
-
+﻿
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:posmobilfinal/src/models/usuario_empresa.dart';
 import 'package:posmobilfinal/src/models/response_api.dart';
 import 'package:posmobilfinal/src/providers/usuarios_empresa_provider.dart';
+
+// 🏢 CONTROLADOR MANTENEDOR USUARIOS EMPRESA
+// Controlador para el mantenimiento de usuarios empresa
 
 class UsuariosEmpresaController extends GetxController {
   final UsuariosEmpresaProvider provider = UsuariosEmpresaProvider();
@@ -43,7 +44,6 @@ class UsuariosEmpresaController extends GetxController {
     super.onInit();
     print('🏢 UsuariosEmpresaController iniciado');
     cargarUsuarios();
-    
     // Escuchar cambios en el texto de búsqueda
     searchText.listen((_) => aplicarFiltros());
   }
@@ -58,43 +58,51 @@ class UsuariosEmpresaController extends GetxController {
     super.onClose();
   }
 
-  // 📋 CARGAR USUARIOS
-  Future<void> cargarUsuarios() async {
+  // 🗑️ ELIMINAR USUARIO
+  Future<void> eliminarUsuario(String? id) async {
+    if (id == null) {
+      mostrarError('ID de usuario no válido');
+      return;
+    }
     try {
       isLoading.value = true;
-      print('📋 Cargando usuarios empresa...');
-
-      // Obtener el código de empresa desde GetStorage
-        // PRUEBA: Enviar código de empresa en duro
-        String? empresaId = '23';
-        print('🔑 Usando empresaId en duro para consulta: $empresaId');
-
-      List<UsuarioEmpresa> usuariosList = await provider.findUsers(empresaId);
-      usuarios.value = usuariosList;
-      aplicarFiltros();
-      
-      print('✅ Usuarios cargados: ${usuarios.length}');
+      final response = await provider.eliminarUsuario(id);
+      if (response.success == true) {
+        mostrarExito('Usuario eliminado correctamente');
+        await cargarUsuarios();
+      } else {
+        mostrarError('No se pudo eliminar: [200b${response.message}');
+      }
     } catch (e) {
-      print('❌ Error cargando usuarios: $e');
-      mostrarError('Error al cargar usuarios');
+      mostrarError('Error eliminando usuario: $e');
     } finally {
       isLoading.value = false;
     }
   }
-
-  // 🔍 APLICAR FILTROS
+  // FILTRAR USUARIOS SEGÚN BÚSQUEDA
   void aplicarFiltros() {
     List<UsuarioEmpresa> usuariosFiltradosList = usuarios.toList();
-
     if (searchText.value.isNotEmpty) {
+      final searchLower = searchText.value.toLowerCase();
       usuariosFiltradosList = usuariosFiltradosList.where((usuario) {
-        final searchLower = searchText.value.toLowerCase();
         return (usuario.rut ?? '').toLowerCase().contains(searchLower) ||
                (usuario.nombreUsuario ?? '').toLowerCase().contains(searchLower);
       }).toList();
     }
-
     usuariosFiltrados.value = usuariosFiltradosList;
+  }
+  // CARGAR USUARIOS DESDE EL PROVIDER
+  Future<void> cargarUsuarios() async {
+    try {
+      isLoading.value = true;
+      final lista = await provider.findUsers();
+      usuarios.value = lista;
+      aplicarFiltros();
+    } catch (e) {
+      mostrarError('Error cargando usuarios: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   // ➕ CREAR USUARIO

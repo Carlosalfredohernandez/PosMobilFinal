@@ -217,6 +217,9 @@ class UsuariosEmpresaPage extends StatelessWidget {
             const PopupMenuItem(value: 'editar', child: Row(
               children: [Icon(Icons.edit), SizedBox(width: 8), Text('Editar')],
             )),
+            const PopupMenuItem(value: 'eliminar', child: Row(
+              children: [Icon(Icons.delete, color: Colors.red), SizedBox(width: 8), Text('Eliminar')],
+            )),
           ],
         ),
         onTap: () => _mostrarFormulario(controller, usuario: usuario),
@@ -247,6 +250,34 @@ class UsuariosEmpresaPage extends StatelessWidget {
       case 'editar':
         _mostrarFormulario(controller, usuario: usuario);
         break;
+      case 'eliminar':
+        _confirmarEliminarUsuario(usuario, controller);
+        break;
+    }
+  }
+
+  // Diálogo de confirmación y acción de eliminar
+  void _confirmarEliminarUsuario(UsuarioEmpresa usuario, UsuariosEmpresaController controller) async {
+    final confirmado = await showDialog<bool>(
+      context: Get.context!,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar usuario'),
+        content: Text('¿Estás seguro de eliminar a ${usuario.nombreUsuario ?? usuario.rut}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado == true) {
+      await controller.eliminarUsuario(usuario.id);
     }
   }
 

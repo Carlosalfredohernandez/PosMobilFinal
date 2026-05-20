@@ -172,3 +172,27 @@ Fecha: 13-05-2026 (actualizado)
   - Si existe SDK nativo (Android/iOS), se debe implementar un canal de plataforma Flutter para enviar el monto y recibir el resultado.
   - Si el POS solo opera con la app oficial de Transbank, la app debe esperar confirmación manual del cajero.
   - El flujo está preparado para mostrar feedback inmediato al usuario según el resultado de la transacción.
+
+## 12. Avances recientes (20-05-2026)
+
+### Gestión de usuarios empresa: Eliminar usuario
+- Se implementó la funcionalidad de eliminar usuario en la pantalla de gestión de usuarios empresa (`usuarios_empresa_page.dart`).
+- Ahora cada usuario tiene un menú con la opción "Eliminar" junto a "Editar".
+- Al seleccionar "Eliminar", se muestra un diálogo de confirmación antes de proceder.
+- Si se confirma, se llama al método `eliminarUsuario` en el controlador, que a su vez utiliza el provider para eliminar el usuario en backend.
+- Tras eliminar, la lista de usuarios se refresca automáticamente y se muestra feedback visual (snackbar de éxito o error).
+- Se corrigieron y ordenaron los imports y declaraciones en el controlador para evitar errores de compilación.
+- Se validó que no existan errores en los archivos clave tras los cambios.
+
+### Notas técnicas
+- El provider de usuarios empresa ya soportaba la operación delete, solo faltaba exponerla en la UI y controlador.
+- Se revisó línea por línea el controlador para asegurar que todas las funciones y variables usadas estuvieran correctamente declaradas y accesibles.
+- Se recomienda limpiar caché y reiniciar el IDE si persisten errores visuales tras los cambios.
+
+## 13. Robustez en asignación de local_usuario al grabar boletas (20-05-2026)
+
+- Se detectó que el campo `local_usuario` podía quedar vacío al grabar boletas desde el flujo de caja, lo que afectaba la trazabilidad y la correcta asociación de ventas a cada local.
+- Se implementó una validación y asignación robusta en el controlador de caja para asegurar que siempre se asigne un valor válido a `local_usuario` antes de enviar la boleta al backend.
+- Ahora, si el valor no está presente en el usuario o en la sesión, se muestra un error y no se permite grabar la boleta hasta corregir el dato.
+- Se agregaron logs de debug para verificar que el campo se envía correctamente en cada emisión.
+- Impacto: Todas las boletas quedan correctamente asociadas a un local, mejorando la trazabilidad, reportabilidad y evitando inconsistencias en el backend.
