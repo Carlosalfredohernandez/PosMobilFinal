@@ -129,12 +129,29 @@ class UsuariosEmpresaProvider extends GetConnect {
     );
     if (response.body == null) {
       Get.snackbar('Error', 'No se pudo eliminar el usuario');
-      return ResponseApi();
+      return ResponseApi(success: false, message: 'Respuesta vacía del servidor');
     }
     if (response.statusCode == 401) {
       Get.snackbar('Error', 'No está autorizado para realizar esta petición');
-      return ResponseApi();
+      return ResponseApi(success: false, message: 'No autorizado');
     }
-    return ResponseApi.fromJson(response.body);
+    // Manejar respuesta tipo String o Map
+    if (response.body is String) {
+      // Intentar decodificar como JSON, si falla, usar como mensaje
+      try {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return ResponseApi.fromJson(decoded);
+        } else {
+          return ResponseApi(success: true, message: response.body);
+        }
+      } catch (_) {
+        return ResponseApi(success: true, message: response.body);
+      }
+    } else if (response.body is Map) {
+      return ResponseApi.fromJson(Map<String, dynamic>.from(response.body));
+    } else {
+      return ResponseApi(success: false, message: 'Respuesta inesperada del servidor');
+    }
   }
 }
