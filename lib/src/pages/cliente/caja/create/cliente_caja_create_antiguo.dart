@@ -54,17 +54,36 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
     // Imprime el PDF generado como imagen en la impresora Bluetooth
     Future<void> _imprimirPdfComoImagen(pw.Document pdf) async {
       try {
-        // Renderiza la primera página del PDF a imagen PNG
-        final List<Uint8List> images = await pdf.save().then((bytes) async {
-          final pdfPages = await Printing.raster(bytes, pages: [0]);
-          final List<Uint8List> result = [];
-          await for (final page in pdfPages) {
-            final imgBytes = await page.toPng();
-            result.add(imgBytes);
+        // Renderiza todas las páginas del PDF a imágenes PNG
+        final Uint8List pdfBytes = await pdf.save();
+        final pdfPages = await Printing.raster(pdfBytes);
+        final List<Uint8List> processedImages = [];
+        await for (final page in pdfPages) {
+          final Uint8List imgBytes = await page.toPng();
+          // Procesar la imagen: ajustar a 384px, binarizar
+          img.Image? original = img.decodeImage(imgBytes);
+          if (original == null) continue;
+          img.Image resized = img.copyResize(original, width: 384);
+          img.Image bw = img.grayscale(resized);
+          // Binarización manual (umbral 128)
+          for (int y = 0; y < bw.height; y++) {
+            for (int x = 0; x < bw.width; x++) {
+              final int pixel = bw.getPixel(x, y) as int;
+              final int r = (pixel >> 16) & 0xFF;
+              final int g = (pixel >> 8) & 0xFF;
+              final int b = pixel & 0xFF;
+              final int luma = (0.299 * r + 0.587 * g + 0.114 * b).round();
+              if (luma > 128) {
+                bw.setPixelRgba(x, y, 255, 255, 255, 255); // blanco
+              } else {
+                bw.setPixelRgba(x, y, 0, 0, 0, 255); // negro
+              }
+            }
           }
-          return result;
-        });
-        if (images.isEmpty) {
+          final Uint8List finalBytes = Uint8List.fromList(img.encodePng(bw));
+          processedImages.add(finalBytes);
+        }
+        if (processedImages.isEmpty) {
           Get.snackbar('Impresión', 'No se pudo renderizar el PDF a imagen');
           return;
         }
@@ -91,9 +110,11 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
           await _bluetooth.connect(device);
           await Future.delayed(const Duration(milliseconds: 600));
         }
-        // Envía la imagen a la impresora
-        await _bluetooth.printImageBytes(images.first);
-        Get.snackbar('Impresión', 'PDF enviado como imagen a la impresora');
+        // Envía todas las páginas procesadas
+        for (final Uint8List imgBytes in processedImages) {
+          await _bluetooth.printImageBytes(imgBytes);
+        }
+        Get.snackbar('Impresión', 'PDF enviado como imagen a la impresora (TSC, 384px, binarizado)');
       } catch (e) {
         Get.snackbar('Error de impresión', e.toString());
       }
