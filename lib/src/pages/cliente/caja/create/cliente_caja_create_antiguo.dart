@@ -13,6 +13,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
+import 'dart:ui' as ui;
 
 // ...el resto del código debe estar dentro de la clase ClienteCajaCreatePage o su State
 
@@ -23,144 +24,190 @@ class ClienteCajaCreatePage extends StatefulWidget {
 }
 
 class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
+  _ClienteCajaCreatePageState();
 
-      // Prueba rápida con esc_pos_bluetooth (solo si tienes la dependencia y el hardware compatible)
-      void imprimirPruebaEscPos() async {
-        // Si tienes esc_pos_bluetooth y esc_pos_utils, descomenta y ajusta:
-        // final printerManager = PrinterBluetoothManager();
-        // printerManager.startScan(Duration(seconds: 4));
-        // printerManager.scanResults.listen((devices) async {
-        //   if (devices.isNotEmpty) {
-        //     final PrinterBluetooth printer = devices.first;
-        //     printerManager.selectPrinter(printer);
-        //     final profile = await CapabilityProfile.load();
-        //     final generator = Generator(PaperSize.mm58, profile);
-        //     final ticket = <int>[];
-        //     ticket.addAll(generator.text(
-        //       'Prueba ESC POS',
-        //       styles: const PosStyles(align: PosAlign.center, bold: true),
-        //       linesAfter: 1,
-        //     ));
-        //     ticket.addAll(generator.feed(3));
-        //     ticket.addAll(generator.cut());
-        //     await printerManager.printTicket(profile, ticket);
-        //     Get.snackbar('ESC/POS', 'Ticket de prueba enviado a la primera impresora encontrada');
-        //   } else {
-        //     Get.snackbar('ESC/POS', 'No se encontraron impresoras Bluetooth');
-        //   }
-        // });
-        Get.snackbar('ESC/POS', 'Función de prueba ESC/POS restaurada (requiere dependencias esc_pos_bluetooth y esc_pos_utils)');
-      }
-    // Imprime el PDF generado como imagen en la impresora Bluetooth
-    Future<void> _imprimirPdfComoImagen(pw.Document pdf) async {
-      try {
-        // Renderiza todas las páginas del PDF a imágenes PNG
-        final Uint8List pdfBytes = await pdf.save();
-        final pdfPages = await Printing.raster(pdfBytes);
-        final List<Uint8List> processedImages = [];
-        await for (final page in pdfPages) {
-          final Uint8List imgBytes = await page.toPng();
-          // Procesar la imagen: ajustar a 384px, binarizar
-          img.Image? original = img.decodeImage(imgBytes);
-          if (original == null) continue;
-          img.Image resized = img.copyResize(original, width: 384);
-          img.Image bw = img.grayscale(resized);
-          // Binarización manual (umbral 128)
-          for (int y = 0; y < bw.height; y++) {
-            for (int x = 0; x < bw.width; x++) {
-              final int pixel = bw.getPixel(x, y) as int;
-              final int r = (pixel >> 16) & 0xFF;
-              final int g = (pixel >> 8) & 0xFF;
-              final int b = pixel & 0xFF;
-              final int luma = (0.299 * r + 0.587 * g + 0.114 * b).round();
-              if (luma > 128) {
-                bw.setPixelRgba(x, y, 255, 255, 255, 255); // blanco
-              } else {
-                bw.setPixelRgba(x, y, 0, 0, 0, 255); // negro
-              }
-            }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text('Caja Cliente'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.bluetooth),
+            onPressed: () {
+              // Acción para Bluetooth
+              // Puedes abrir un diálogo de selección de impresora o similar
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.print),
+            onPressed: () {
+              // Acción para impresión
+              // Puedes mostrar estado de impresora o imprimir prueba
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            color: Theme.of(context).primaryColor,
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _campoCodigoBarra(context)),
+                    _iconSearch(context),
+                    _iconScan(),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: controlador.selectedProducts.length > 0
+                  ? ListView.builder(
+                      padding: EdgeInsets.only(top: 8),
+                      itemCount: controlador.selectedProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = controlador.selectedProducts[index];
+                        return _cardProduct(product);
+                      },
+                    )
+                  : Center(child: Text('No hay ningun producto agregado aun')),
+            ),
+          ),
+          _footerPagos(context),
+        ],
+      ),
+    );
+  }
+
+  // Cargar fuente bitmap desde assets
+
+  // Prueba real para impresora TSC: imprime una imagen de test (ancho 384 px, binarizada)
+  void imprimirPruebaEscPos() async {
+    try {
+      // Cargar fuente bitmap desde assets
+      final fntStr = await rootBundle.loadString('assets/fonts/arial14.fnt');
+      final pngBytes = await rootBundle.load('assets/fonts/arial14.png');
+      final pngImg = img.decodePng(pngBytes.buffer.asUint8List());
+      if (pngImg == null) throw Exception('No se pudo decodificar arial14.png');
+      final font = img.BitmapFont.fromFnt(fntStr, pngImg);
+      // Crear imagen de test (384x120 px, texto y líneas)
+      final img.Image testImg = img.Image(width: 384, height: 120);
+      img.fill(testImg, color: img.ColorRgb8(255, 255, 255));
+      img.drawLine(testImg, x1: 0, y1: 40, x2: 383, y2: 40, color: img.ColorRgb8(0, 0, 0));
+      img.drawString(testImg, 'PRUEBA IMPRESORA', font: font);
+      img.drawString(testImg, 'Ancho: 384 px', font: font);
+      img.drawString(testImg, 'Fecha: ${DateTime.now().toString().substring(0, 16)}', font: font);
+      // Binarizar (umbral manual)
+      final bw = img.grayscale(testImg);
+      for (int y = 0; y < bw.height; y++) {
+        for (int x = 0; x < bw.width; x++) {
+          final pixel = bw.getPixel(x, y);
+          final luma = (0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b).round();
+          if (luma > 128) {
+            bw.setPixelRgba(x, y, 255, 255, 255, 255);
+          } else {
+            bw.setPixelRgba(x, y, 0, 0, 0, 255);
           }
-          final Uint8List finalBytes = Uint8List.fromList(img.encodePng(bw));
-          processedImages.add(finalBytes);
         }
-        if (processedImages.isEmpty) {
-          Get.snackbar('Impresión', 'No se pudo renderizar el PDF a imagen');
-          return;
-        }
-        final impresoraGuardada = _storage.read('impresora');
-        if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
-          Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
-          return;
-        }
-        final String address = impresoraGuardada['address'].toString();
-        final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
-        BluetoothDevice? device;
-        for (final d in bonded) {
-          if (d.address == address) {
-            device = d;
-            break;
-          }
-        }
-        if (device == null) {
-          Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
-          return;
-        }
-        final bool? conectado = await _bluetooth.isConnected;
-        if (conectado != true) {
-          await _bluetooth.connect(device);
-          await Future.delayed(const Duration(milliseconds: 600));
-        }
-        // Envía todas las páginas procesadas
-        for (final Uint8List imgBytes in processedImages) {
-          await _bluetooth.printImageBytes(imgBytes);
-        }
-        Get.snackbar('Impresión', 'PDF enviado como imagen a la impresora (TSC, 384px, binarizado)');
-      } catch (e) {
-        Get.snackbar('Error de impresión', e.toString());
       }
+      final Uint8List finalBytes = Uint8List.fromList(img.encodePng(bw));
+      final impresoraGuardada = _storage.read('impresora');
+      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+        Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+        return;
+      }
+      final String address = impresoraGuardada['address'].toString();
+      final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
+      BluetoothDevice? device;
+      for (final d in bonded) {
+        if (d.address == address) {
+          device = d;
+          break;
+        }
+      }
+      if (device == null) {
+        Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+        return;
+      }
+      final bool? conectado = await _bluetooth.isConnected;
+      if (conectado != true) {
+        await _bluetooth.connect(device);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+      await _bluetooth.printImageBytes(finalBytes);
+      Get.snackbar('Impresión', 'Imagen de prueba enviada a la impresora');
+    } catch (e, st) {
+      Get.snackbar('Error de impresión', e.toString());
+      print('Error impresión prueba: $e\n$st');
     }
+  }
+
+  /// Imprime un PDF como imagen en la impresora Bluetooth
+  Future<void> _imprimirPdfComoImagen(pw.Document pdf) async {
+    try {
+      // Renderiza la primera página del PDF a imagen
+      final pdfBytes = await pdf.save();
+      final rasterStream = Printing.raster(pdfBytes, pages: [0]);
+      final raster = await rasterStream.first;
+      final Uint8List imageBytes = await raster.toPng();
+      if (imageBytes.isEmpty) throw Exception('No se pudo renderizar el PDF a imagen');
+      final impresoraGuardada = _storage.read('impresora');
+      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+        Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+        return;
+      }
+      final String address = impresoraGuardada['address'].toString();
+      final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
+      BluetoothDevice? device;
+      for (final d in bonded) {
+        if (d.address == address) {
+          device = d;
+          break;
+        }
+      }
+      if (device == null) {
+        Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+        return;
+      }
+      final bool? conectado = await _bluetooth.isConnected;
+      if (conectado != true) {
+        await _bluetooth.connect(device);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+      await _bluetooth.printImageBytes(imageBytes);
+      Get.snackbar('Impresión', 'PDF impreso como imagen');
+    } catch (e, st) {
+      Get.snackbar('Error de impresión', e.toString());
+      print('Error impresión PDF como imagen: $e\n$st');
+    }
+  }
   // Asegura que el controlador esté inicializado
   late final ClienteCajaCreateController controlador;
+
+  @override
+  void initState() {
+    super.initState();
+    controlador = ClienteCajaCreateController();
+  }
   final BlueThermalPrinter _bluetooth = BlueThermalPrinter.instance;
   final GetStorage _storage = GetStorage();
   Map<String, dynamic>? _boletaData;
   // Función para generar el PDF de la boleta con firma SII simulada
   Future<void> _generarYMostrarBoletaPDF(BuildContext context) async {
     final pdf = pw.Document();
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('BOLETA ELECTRÓNICA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 10),
-              pw.Text('Emisor: Empresa de Ejemplo SpA'),
-              pw.Text('RUT: 76.123.456-7'),
-              pw.Text('Fecha: ${DateTime.now().toString().substring(0, 16)}'),
-              pw.SizedBox(height: 10),
-              pw.Text('Detalle de productos/servicios:'),
-              pw.Bullet(text: 'Producto 1 - \$1.000'),
-              pw.Bullet(text: 'Producto 2 - \$2.000'),
-              pw.SizedBox(height: 10),
-              pw.Text('Total: \$3.000', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 20),
-              pw.Divider(),
-              pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text('SII: 2026-05-01T12:00:00Z'),
-              pw.BarcodeWidget(
-                data: 'BOLETA123456|2026-05-01',
-                barcode: pw.Barcode.qrCode(),
-                width: 80,
-                height: 80,
-              ),
-              pw.SizedBox(height: 10),
-              pw.Text('Timbre electrónico simulado para pruebas internas.'),
-            ],
-          );
-        },
-      ),
-    );
     // Datos reales de boleta para impresión Bluetooth
     _boletaData = {
       'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
@@ -224,131 +271,10 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
       }
       await _bluetooth.printNewLine();
       await _bluetooth.printCustom('TOTAL: ${boleta['total'] ?? 0}', 2, 2);
-      await _bluetooth.printNewLine();
-      await _bluetooth.printCustom('Timbre Electronico SII', 0, 1);
-      await _bluetooth.printCustom('Gracias por su compra', 1, 1);
-      // Agregar varias líneas en blanco para forzar el feed
-      for (int i = 0; i < 6; i++) {
-        await _bluetooth.printNewLine();
-      }
-      // Enviar comando de corte de papel si la impresora lo soporta (algunas lo ignoran)
-      // await _bluetooth.writeBytes([0x1D, 0x56, 0x00]); // ESC/POS cut
-      Get.snackbar('Impresión', 'Boleta enviada a impresora Bluetooth');
-    } catch (e) {
+    } catch (e, st) {
       Get.snackbar('Error de impresión', e.toString());
+      print('Error impresión prueba: $e\n$st');
     }
-  }
-    final GetStorage storage = GetStorage();
-
-    @override
-    void initState() {
-    super.initState();
-    // Inicializa el controlador solo si no existe
-    if (!Get.isRegistered<ClienteCajaCreateController>()) {
-      controlador = Get.put(ClienteCajaCreateController());
-    } else {
-      controlador = Get.find<ClienteCajaCreateController>();
-    }
-    // Mostrar en consola los datos guardados en el storage
-    print('📦 Storage - usuario: ' + (storage.read('usuario')?.toString() ?? 'null'));
-    print('📦 Storage - usuarioempresa: ' + (storage.read('usuarioempresa')?.toString() ?? 'null'));
-    print('📦 Storage - usuario_rol: ' + (storage.read('usuario_rol')?.toString() ?? 'null'));
-    }
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  var precio = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    // print('🟦 ClienteCajaCreatePage: build ejecutado'); // Solo para debug
-    return WillPopScope(
-      onWillPop: () async {
-        controlador.limpiarCarrito();
-        controlador.codigoBarraController.clear();
-        return true;
-      },
-      child: Obx(() {
-        if (controlador.isLoading.value) {
-          return Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        return Scaffold(
-          bottomNavigationBar: _footerPagos(context),
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back),
-              tooltip: 'Volver al menú general',
-              onPressed: () {
-                controlador.limpiarCarrito();
-                controlador.codigoBarraController.clear();
-                Get.toNamed('/menugeneral');
-              },
-            ),
-            title: Text(''),
-            backgroundColor: Theme.of(context).primaryColor,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: Icon(Icons.settings_bluetooth, color: Colors.white),
-                tooltip: 'Configurar impresora',
-                onPressed: () async {
-                  await Get.toNamed('/configuraciones/impresora');
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.scanner, color: Colors.white),
-                tooltip: 'Prueba ESC/POS',
-                onPressed: () {
-                  imprimirPruebaEscPos();
-                },
-              ),
-            ],
-          ),
-          resizeToAvoidBottomInset: true,
-          body: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                color: Theme.of(context).primaryColor,
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: _campoCodigoBarra(context)),
-                        _iconSearch(context),
-                        _iconScan(),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-                  child: controlador.selectedProducts.length > 0
-                      ? ListView.builder(
-                          padding: EdgeInsets.only(top: 8),
-                          itemCount: controlador.selectedProducts.length,
-                          itemBuilder: (context, index) {
-                            final product = controlador.selectedProducts[index];
-                            return _cardProduct(product);
-                          },
-                        )
-                      : Center(child: Text('No hay ningun producto agregado aun')),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
-    );
   }
 
   Widget _footerPagos(BuildContext context) {
@@ -406,9 +332,19 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                   : () {
                       Get.snackbar('Sin productos', 'Agrega productos antes de pagar');
                     },
-              label: Text(
-                'Pagar Débito',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
+              label: TextButton(
+                onPressed: () async {
+                  final pdf = pw.Document();
+                  pdf.addPage(
+                    pw.Page(
+                      build: (pw.Context context) {
+                        return pw.Center(child: pw.Text('Pago Débito'));
+                      },
+                    ),
+                  );
+                  await _imprimirPdfComoImagen(pdf);
+                },
+                child: Text('Pagar Débito', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white)),
               ),
             ),
           ),
@@ -688,7 +624,11 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
 
   Widget _iconDelete(Producto product) {
     return IconButton(
-        onPressed: () => controlador.deleteItem(product),
+        onPressed: () {
+          setState(() {
+            controlador.deleteItem(product);
+          });
+        },
         icon: Icon(
           Icons.delete,
           color: Colors.red,
@@ -768,8 +708,9 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
             delegate: ClienteCajaSearchPage(controlador.productos),
           );
           if (result != null && result.nombreProducto != null && result.nombreProducto!.isNotEmpty) {
-            // Agregar el producto seleccionado a la lista
-            controlador.addItem(result);
+            setState(() {
+              controlador.addItem(result);
+            });
             FocusScope.of(context).unfocus(); // Cierra el teclado automáticamente
           }
         },
@@ -847,9 +788,11 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
               filled: true,
               hintText: 'Código de barra',
               suffixIcon: IconButton(
-                onPressed: () {
-                  controlador.code(context);
-                  controlador.codigoBarraController.clear();
+                onPressed: () async {
+                  await controlador.code(context);
+                  setState(() {
+                    controlador.codigoBarraController.clear();
+                  });
                   FocusScope.of(context).unfocus(); // Oculta el teclado
                 },
                 icon: Icon(Icons.search),
