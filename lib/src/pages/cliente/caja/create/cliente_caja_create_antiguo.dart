@@ -14,6 +14,7 @@ import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'dart:ui' as ui;
+import 'package:posmobilfinal/src/pages/configuraciones/impresora.dart';
 
 // ...el resto del código debe estar dentro de la clase ClienteCajaCreatePage o su State
 
@@ -38,16 +39,22 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
         actions: [
           IconButton(
             icon: Icon(Icons.bluetooth),
-            onPressed: () {
-              // Acción para Bluetooth
-              // Puedes abrir un diálogo de selección de impresora o similar
+            onPressed: () async {
+              // Abrir página de selección de impresora Bluetooth
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) =>
+                  // Importa la página de impresoras si no está importada
+                  // ignore: prefer_const_constructors
+                  ImpresorasPage()
+                ),
+              );
             },
           ),
           IconButton(
             icon: Icon(Icons.print),
             onPressed: () {
-              // Acción para impresión
-              // Puedes mostrar estado de impresora o imprimir prueba
+              // Ejecutar prueba de impresión
+              imprimirPruebaEscPos();
             },
           ),
         ],

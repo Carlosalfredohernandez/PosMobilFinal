@@ -196,3 +196,47 @@ Fecha: 13-05-2026 (actualizado)
 - Ahora, si el valor no está presente en el usuario o en la sesión, se muestra un error y no se permite grabar la boleta hasta corregir el dato.
 - Se agregaron logs de debug para verificar que el campo se envía correctamente en cada emisión.
 - Impacto: Todas las boletas quedan correctamente asociadas a un local, mejorando la trazabilidad, reportabilidad y evitando inconsistencias en el backend.
+
+## 14. Incidencias y correcciones recientes (21-22-05-2026)
+
+### Limpieza y compatibilidad de impresión TSC (cliente_caja_create_antiguo.dart)
+- Se revisó y limpió completamente la función de impresión de prueba para máxima compatibilidad con la versión instalada de la librería image (4.x), eliminando errores de argumentos y de acceso a píxeles.
+- Se eliminaron todos los rastros de la API antigua de image (argumentos posicionales, operadores bitwise, etc.) y se migró todo a la API moderna.
+- Se corrigió el uso de drawString para que solo acepte los argumentos posicionales requeridos por la versión instalada.
+- Se agregó y validó el constructor por defecto en la clase State para evitar errores de compilación.
+- Se eliminaron funciones duplicadas y código muerto relacionado con impresión y PDF que no se utilizaba.
+- Se revisó línea por línea el archivo para asegurar que no quedaran errores de compilación ni advertencias.
+- Se documentó el flujo de impresión de prueba y la binarización moderna para futuras referencias.
+
+### Manejo de errores y limpieza de imports
+- Se corrigieron errores de ambigüedad y duplicidad en la importación de GetX, usando alias (getx) y actualizando todas las referencias en main_simple_fixed.dart.
+- Se eliminaron referencias y el archivo main_simple_fixed.dart, ya que no se utiliza en el proyecto principal.
+- Se validó que no existan referencias residuales ni errores tras la limpieza.
+
+### Recomendaciones
+- Si aparecen errores tras eliminar archivos, limpiar caché del IDE y ejecutar `flutter clean` seguido de `flutter pub get`.
+- Mantener este README actualizado con cada incidencia relevante para no perder el historial de problemas y soluciones al cerrar el workspace.
+
+## 12. Impresora utilizada y forma de impresión
+
+### Modelo de impresora
+- **Modelo:** Genérica China P1 (u otros modelos compatibles ESC/POS)
+- **Tipo:** Térmica Bluetooth
+- **Compatibilidad:** Funciona con el paquete `blue_thermal_printer` y comandos ESC/POS estándar.
+- **Pruebas realizadas:** Impresión de texto, imágenes (bitmap) y PDF rasterizado como imagen.
+
+### Forma de impresión habilitada en la app
+- La app permite seleccionar y conectar la impresora desde la pantalla de configuración.
+- El flujo de impresión utiliza la dirección MAC de la impresora guardada y se conecta automáticamente antes de imprimir.
+- Se soportan dos métodos principales:
+  1. **Impresión directa de texto:** Usando métodos como `printCustom` y `printNewLine` para imprimir líneas de texto y totales.
+  2. **Impresión de imágenes:** Usando `printImageBytes` para enviar imágenes binarizadas (por ejemplo, logos, pruebas o boleta renderizada como imagen).
+  3. **Impresión de PDF como imagen:** El PDF de la boleta se rasteriza a PNG y se imprime como bitmap usando `printImageBytes`.
+- El flujo valida la conexión antes de imprimir y notifica al usuario en caso de éxito o error.
+- La lógica es compatible con la mayoría de impresoras térmicas Bluetooth económicas del mercado (incluyendo la P1 y similares).
+
+### Recomendaciones
+- Verificar que la impresora esté encendida y emparejada antes de imprimir.
+- Si ocurre error de conexión, cerrar otras apps que usen la impresora y volver a intentar.
+- Para impresoras nuevas, probar primero la impresión de prueba desde la app.
+- Si la impresión de imágenes sale distorsionada, ajustar el ancho de la imagen a 384px (o el ancho nativo de la impresora).

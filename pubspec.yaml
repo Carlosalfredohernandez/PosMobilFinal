@@ -89,6 +89,8 @@ flutter:
   assets:
     - android/assets/img/
     - android/assets/img/cashier2_118071.png
+    - assets/fonts/arial14.fnt
+    - assets/fonts/arial14.png
   #  - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
