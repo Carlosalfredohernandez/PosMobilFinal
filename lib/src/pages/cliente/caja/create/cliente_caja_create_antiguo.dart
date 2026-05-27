@@ -26,6 +26,94 @@ class ClienteCajaCreatePage extends StatefulWidget {
 
 class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
 
+    /// Genera el PDF de la boleta usando los datos actuales
+    Future<pw.Document> generarPdfBoleta() async {
+      final pdf = pw.Document();
+      // Puedes personalizar el contenido del PDF aquí
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('BOLETA ELECTRONICA', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 8),
+                pw.Text('Folio: \\${_boletaData?['folio'] ?? ''}'),
+                pw.Text('RUT: \\${_boletaData?['rut_emisor'] ?? ''}'),
+                pw.Text('Razón Social: \\${_boletaData?['razon_social'] ?? ''}'),
+                pw.SizedBox(height: 8),
+                pw.Text('Detalle:'),
+                if ((_boletaData?['detalle'] as List?) != null)
+                  ...((_boletaData!['detalle'] as List).map((item) =>
+                    pw.Text('  - \\${item['cantidad']} x \\${item['nombre']} (\$${item['monto']})')
+                  )),
+                pw.SizedBox(height: 8),
+                pw.Text('Total: \\${_boletaData?['total'] ?? ''}'),
+              ],
+            );
+          },
+        ),
+      );
+      return pdf;
+    }
+  /// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime
+  Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}) async {
+    try {
+      // Decodificar la imagen
+      final img.Image? original = img.decodeImage(imageBytes);
+      if (original == null) throw Exception('No se pudo decodificar la imagen');
+      // Convertir a blanco y negro (umbral manual)
+      final img.Image bw = img.grayscale(original);
+      for (int py = 0; py < bw.height; py++) {
+        for (int px = 0; px < bw.width; px++) {
+          final pixel = bw.getPixel(px, py);
+          final r = pixel.r;
+          final g = pixel.g;
+          final b = pixel.b;
+          final luma = (0.299 * r + 0.587 * g + 0.114 * b).round();
+          if (luma > 128) {
+            bw.setPixelRgba(px, py, 255, 255, 255, 255);
+          } else {
+            bw.setPixelRgba(px, py, 0, 0, 0, 255);
+          }
+        }
+      }
+      // El ancho debe ser múltiplo de 8 para TSPL
+      int width = bw.width;
+      int height = bw.height;
+      int widthBytes = (width + 7) ~/ 8;
+      // Empaquetar los datos en formato bitmap TSPL (1 bit por pixel, MSB primero)
+      List<int> bitmap = [];
+      for (int row = 0; row < height; row++) {
+        for (int byte = 0; byte < widthBytes; byte++) {
+          int b = 0;
+          for (int bit = 0; bit < 8; bit++) {
+            int xpix = byte * 8 + bit;
+            b <<= 1;
+            if (xpix < width) {
+              final color = bw.getPixel(xpix, row);
+              final r = color.r;
+              // Si es negro, bit=1
+              if (r < 128) b |= 1;
+            }
+          }
+          bitmap.add(b);
+        }
+      }
+      // Comando TSPL BITMAP
+      String tspl = '! 0 200 200 ${height + 20} 1\r\n';
+      tspl += 'BITMAP $x $y $width $height 1 '; // modo 1: overwrite
+      // Convertir a hex string
+      String hex = bitmap.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+      tspl += hex + '\r\nPRINT\r\n';
+      await _bluetooth.write(tspl);
+      Get.snackbar('Impresión', 'Imagen enviada como TSPL BITMAP');
+    } catch (e, st) {
+      Get.snackbar('Error de impresión', e.toString());
+      print('Error impresión imagen TSPL: $e\n$st');
+    }
+  }
+
   /// Imprime la boleta en formato TSPL usando datos reales y el TED como imagen
   void imprimirBoletaTSPL() async {
     try {
@@ -202,7 +290,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Caja Cliente'),
+        title: Text('Caja'),
         actions: [
           IconButton(
             icon: Icon(Icons.bluetooth),
@@ -345,31 +433,11 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
       final raster = await rasterStream.first;
       final Uint8List imageBytes = await raster.toPng();
       if (imageBytes.isEmpty) throw Exception('No se pudo renderizar el PDF a imagen');
-      final impresoraGuardada = _storage.read('impresora');
-      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
-        Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
-        return;
-      }
-      final String address = impresoraGuardada['address'].toString();
-      final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
-      BluetoothDevice? device;
-      for (final d in bonded) {
-        if (d.address == address) {
-          device = d;
-          break;
-        }
-      }
-      if (device == null) {
-        Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
-        return;
-      }
-      final bool? conectado = await _bluetooth.isConnected;
-      if (conectado != true) {
-        await _bluetooth.connect(device);
-        await Future.delayed(const Duration(milliseconds: 600));
-      }
-      await _bluetooth.printImageBytes(imageBytes);
-      Get.snackbar('Impresión', 'PDF impreso como imagen');
+      // Llama a la nueva función para imprimir como TSPL BITMAP
+      await imprimirImagenComoTSPL(imageBytes);
+      // Si quieres mantener la opción de imprimir como imagen directa, puedes dejar la línea siguiente comentada:
+      // await _bluetooth.printImageBytes(imageBytes);
+      // Get.snackbar('Impresión', 'PDF impreso como imagen');
     } catch (e, st) {
       Get.snackbar('Error de impresión', e.toString());
       print('Error impresión PDF como imagen: $e\n$st');
@@ -727,7 +795,9 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                               controlador.limpiarCarrito();
                               controlador.codigoBarraController.clear();
                             } else if (opcion == 'imprimir') {
-                              imprimirBoletaTSPL();
+                              // Generar el PDF y enviarlo a imprimir como imagen TSPL
+                              final pdf = await generarPdfBoleta();
+                              await _imprimirPdfComoImagen(pdf);
                             }
                           }
                         },

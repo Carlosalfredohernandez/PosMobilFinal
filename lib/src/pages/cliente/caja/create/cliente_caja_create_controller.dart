@@ -521,10 +521,12 @@ class ClienteCajaCreateController extends GetxController {
 }
 
 /// 🛠️ WIDGET PARA CREAR PRODUCTO
+
 class _CrearProductoDialog extends StatefulWidget {
   final String barcode;
+  final VoidCallback? onImprimirPdfTspl;
 
-  const _CrearProductoDialog({required this.barcode});
+  const _CrearProductoDialog({required this.barcode, this.onImprimirPdfTspl});
 
   @override
   State<_CrearProductoDialog> createState() => _CrearProductoDialogState();
@@ -561,7 +563,7 @@ class _CrearProductoDialogState extends State<_CrearProductoDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Código: ${widget.barcode}'),
+            Text('Código: \\${widget.barcode}'),
             const SizedBox(height: 10),
             TextField(
               controller: nombreController,
@@ -609,6 +611,12 @@ class _CrearProductoDialogState extends State<_CrearProductoDialog> {
             }
           },
           child: const Text('Crear y Agregar'),
+        ),
+        ElevatedButton(
+          onPressed: widget.onImprimirPdfTspl != null
+              ? () => widget.onImprimirPdfTspl!()
+              : null,
+          child: const Text('Imprimir PDF TSPL'),
         ),
       ],
     );
