@@ -26,107 +26,128 @@ class ClienteCajaCreatePage extends StatefulWidget {
 
 class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
 
-      /// Imprime la boleta en formato TSPL con datos de ejemplo
-      void imprimirBoletaTSPL() async {
-        try {
-          final impresoraGuardada = _storage.read('impresora');
-          if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
-            Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
-            return;
-          }
-          final String address = impresoraGuardada['address'].toString();
-          final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
-          BluetoothDevice? device;
-          for (final d in bonded) {
-            if (d.address == address) {
-              device = d;
-              break;
-            }
-          }
-          if (device == null) {
-            Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
-            return;
-          }
-          final bool? conectado = await _bluetooth.isConnected;
-          if (conectado != true) {
-            await _bluetooth.connect(device);
-            await Future.delayed(const Duration(milliseconds: 600));
-          }
-
-          // --- Datos de ejemplo ---
-          String rut = '77710916-2';
-          String razonSocial = 'Tecnolsa Chile SpA';
-          int nroBoleta = 307;
-          String sucursal = 'SUCURSAL:';
-          String direccion = 'Av. Providencia 1007 of.41';
-          String giro = 'Servicios Tecnologicos';
-          String codVendedor = '3606';
-          String vendedor = 'NEFLI PALACIOS MARIO';
-          int nroCaja = 3;
-          String fecha = '2026-05-26';
-          String hora = '22:32';
-          List<Map<String, dynamic>> detalle = [
-            {
-              'cantidad': 1,
-              'descripcion': 'Rinzo XL asdasdasdasd',
-              'punit': 5000,
-              'total': 5000,
-            },
-          ];
-          int subtotal = 5000;
-          int total = 5000;
-          String iva = '[ S/ 0 ]';
-          String codigoBarra = '123456789012';
-
-          // --- Generar TSPL ---
-          String tspl = '! 0 200 200 900 1\r\n';
-          tspl += 'BOX 10 10 570 880 2\r\n';
-          tspl += 'TEXT 4 0 30 20 "R.U.T.: $rut"\r\n';
-          tspl += 'TEXT 4 0 30 50 "$razonSocial"\r\n';
-          tspl += 'TEXT 4 0 30 80 "BOLETA ELECTRONICA"\r\n';
-          tspl += 'TEXT 4 0 350 80 "N° $nroBoleta"\r\n';
-          tspl += 'TEXT 4 0 30 110 "$sucursal"\r\n';
-          tspl += 'TEXT 4 0 30 140 "DIRECCIÓN: $direccion"\r\n';
-          tspl += 'TEXT 4 0 30 170 "GIRO: $giro"\r\n';
-          tspl += 'TEXT 4 0 30 200 "COD VENDEDOR: $codVendedor"\r\n';
-          tspl += 'TEXT 4 0 30 230 "VENDEDOR: $vendedor"\r\n';
-          tspl += 'TEXT 4 0 30 260 "Nro. Caja: $nroCaja"\r\n';
-          tspl += 'TEXT 4 0 250 260 "Nro. Boleta: $nroBoleta"\r\n';
-          tspl += 'TEXT 4 0 30 290 "Fecha: $fecha"\r\n';
-          tspl += 'TEXT 4 0 250 290 "Hora: $hora"\r\n';
-
-          // Encabezado tabla
-          tspl += 'TEXT 4 0 30 320 "Cant."\r\n';
-          tspl += 'TEXT 4 0 90 320 "Descripción"\r\n';
-          tspl += 'TEXT 4 0 300 320 "P.Unit"\r\n';
-          tspl += 'TEXT 4 0 400 320 "Total"\r\n';
-
-          int y = 350;
-          for (final item in detalle) {
-            tspl += 'TEXT 4 0 30 $y "${item['cantidad']}"\r\n';
-            tspl += 'TEXT 4 0 90 $y "${item['descripcion']}"\r\n';
-            tspl += 'TEXT 4 0 300 $y "${item['punit']}"\r\n';
-            tspl += 'TEXT 4 0 400 $y "${item['total']}"\r\n';
-            y += 30;
-          }
-
-          tspl += 'TEXT 4 0 300 ${y + 10} "SUBTOTAL: $subtotal"\r\n';
-          tspl += 'TEXT 4 0 300 ${y + 40} "TOTAL: $total"\r\n';
-          tspl += 'TEXT 4 0 30 ${y + 70} "El IVA de esta boleta es:"\r\n';
-          tspl += 'TEXT 4 0 30 ${y + 100} "$iva"\r\n';
-
-          // Código de barras
-          tspl += 'BARCODE 30 ${y + 130} 128 80 1 0 2 2 "$codigoBarra"\r\n';
-
-          tspl += 'PRINT\r\n';
-
-          await _bluetooth.write(tspl);
-          Get.snackbar('Impresión', 'Boleta enviada a la impresora');
-        } catch (e, st) {
-          Get.snackbar('Error de impresión', e.toString());
-          print('Error impresión TSPL: $e\n$st');
+  /// Imprime la boleta en formato TSPL usando datos reales y el TED como imagen
+  void imprimirBoletaTSPL() async {
+    try {
+      final impresoraGuardada = _storage.read('impresora');
+      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+        Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+        return;
+      }
+      final String address = impresoraGuardada['address'].toString();
+      final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
+      BluetoothDevice? device;
+      for (final d in bonded) {
+        if (d.address == address) {
+          device = d;
+          break;
         }
       }
+      if (device == null) {
+        Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+        return;
+      }
+      final bool? conectado = await _bluetooth.isConnected;
+      if (conectado != true) {
+        await _bluetooth.connect(device);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+
+      // --- DATOS REALES DEL MODELO ---
+      final boleta = _boletaData;
+      if (boleta == null) {
+        Get.snackbar('Impresión', 'No hay datos de boleta para imprimir');
+        return;
+      }
+      final detalle = (boleta['detalle'] as List?) ?? [];
+      final String folio = boleta['folio']?.toString() ?? '';
+      final String rut = boleta['rut_emisor']?.toString() ?? '';
+      final String razonSocial = boleta['razon_social']?.toString() ?? '';
+      final int total = boleta['total'] ?? 0;
+      final String fecha = DateTime.now().toString().substring(0, 16);
+      final String ted = boleta['ted_dd']?.toString() ?? '';
+
+
+      // --- TSPL optimizado para 58mm sin BOX ---
+      // Ancho 384px, fuente 2, sin márgenes, tabla simple
+      String tspl = '! 0 200 200 900 1\r\n';
+      tspl += 'TEXT 2 0 0 20 "BOLETA ELECTRONICA"\r\n';
+      tspl += 'TEXT 2 0 0 50 "RUT: $rut"\r\n';
+      tspl += 'TEXT 2 0 180 50 "N° $folio"\r\n';
+      tspl += 'TEXT 2 0 0 75 "$razonSocial"\r\n';
+      tspl += 'TEXT 2 0 0 100 "Fecha: ${fecha.split(' ')[0]}  Hora: ${fecha.split(' ')[1]}"\r\n';
+
+      // Encabezado tabla
+      tspl += 'LINE 0 130 380 130 1\r\n';
+      tspl += 'TEXT 2 0 0 135 "Cant"\r\n';
+      tspl += 'TEXT 2 0 70 135 "P.Unit"\r\n';
+      tspl += 'TEXT 2 0 170 135 "Total"\r\n';
+      tspl += 'LINE 0 160 380 160 1\r\n';
+
+      int y = 165;
+      for (final item in detalle) {
+        final nombre = (item['nombre'] ?? item['descripcion'] ?? '').toString();
+        final cantidad = (item['cantidad'] ?? 1).toString();
+        final monto = (item['monto'] ?? item['total'] ?? 0).toString();
+        final punit = item['punit']?.toString() ?? item['precioVenta']?.toString() ?? '';
+        // Nombre en dos líneas si es largo
+        String nombre1 = nombre;
+        String nombre2 = '';
+        if (nombre.length > 18) {
+          nombre1 = nombre.substring(0, 18);
+          nombre2 = nombre.substring(18, nombre.length > 36 ? 36 : nombre.length);
+        }
+        tspl += 'TEXT 2 0 0 $y "$nombre1"\r\n';
+        if (nombre2.isNotEmpty) {
+          y += 20;
+          tspl += 'TEXT 2 0 0 $y "$nombre2"\r\n';
+        }
+        y += 20;
+        tspl += 'TEXT 2 0 0 $y "$cantidad"\r\n';
+        tspl += 'TEXT 2 0 70 $y "$punit"\r\n';
+        tspl += 'TEXT 2 0 170 $y "$monto"\r\n';
+        y += 20;
+        tspl += 'LINE 0 $y 380 $y 1\r\n';
+        y += 5;
+      }
+      y += 5;
+      tspl += 'TEXT 2 0 100 $y "TOTAL: $total"\r\n';
+      y += 25;
+      tspl += 'TEXT 2 0 0 $y "IVA: 0"\r\n';
+      y += 20;
+      // Código de barras PDF417 para TED
+      if (ted.isNotEmpty) {
+        tspl += 'PDF417 0 $y 380 60 0 2 6 0 0 "$ted"\r\n';
+        y += 70;
+      }
+      tspl += 'TEXT 2 0 0 $y "Timbre Electronico SII"\r\n';
+      tspl += 'PRINT\r\n';
+
+      // --- Enviar TSPL (texto) ---
+      await _bluetooth.write(tspl);
+
+      // --- Imprimir TED como imagen si existe ---
+      if (ted.isNotEmpty) {
+        // Cargar fuente bitmap desde assets (igual que imprimirPruebaEscPos)
+        final fntStr = await rootBundle.loadString('assets/fonts/arial14.fnt');
+        final pngBytes = await rootBundle.load('assets/fonts/arial14.png');
+        final pngImg = img.decodePng(pngBytes.buffer.asUint8List());
+        if (pngImg != null) {
+          final font = img.BitmapFont.fromFnt(fntStr, pngImg);
+          final img.Image tedImg = img.Image(width: 380, height: 80);
+          img.fill(tedImg, color: img.ColorRgb8(255, 255, 255));
+          img.drawString(tedImg, ted.length > 100 ? ted.substring(0, 100) : ted, font: font);
+          final Uint8List tedBytes = Uint8List.fromList(img.encodePng(tedImg));
+          await _bluetooth.printImageBytes(tedBytes);
+        }
+      }
+
+      Get.snackbar('Impresión', 'Boleta enviada a la impresora');
+    } catch (e, st) {
+      Get.snackbar('Error de impresión', e.toString());
+      print('Error impresión TSPL: $e\n$st');
+    }
+  }
     final BlueThermalPrinter _bluetooth = BlueThermalPrinter.instance;
     final GetStorage _storage = GetStorage();
 
@@ -665,6 +686,21 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                           }
                           await controlador.emitirBoletaSii(context: context);
                           if ((controlador.dteXmlString ?? '').isNotEmpty) {
+                            // --- Asignar datos de boleta para impresión ---
+                            _boletaData = {
+                              'folio': controlador.dteBoletaId ?? 'SIN_FOLIO',
+                              'rut_emisor': '76.123.456-7',
+                              'razon_social': 'Empresa de Ejemplo SpA',
+                              'total': controlador.total.value is int ? controlador.total.value : (controlador.total.value as num).round(),
+                              'detalle': controlador.selectedProducts.map((p) => {
+                                'nombre': p.nombreProducto ?? '',
+                                'cantidad': p.cantidad is int ? p.cantidad : (p.cantidad ?? 1).round(),
+                                'monto': int.tryParse(p.precioVenta ?? '0') != null ? (int.parse(p.precioVenta!) * ((p.cantidad is int ? p.cantidad : (p.cantidad ?? 1).round()) as int)) : 0,
+                                'punit': p.precioVenta ?? '0',
+                              }).toList(),
+                              'ted_dd': controlador.dteXmlString ?? '',
+                            };
+                            Get.snackbar('Boleta generada', 'La boleta se generó correctamente');
                             Navigator.of(context).pop();
                             final opcion = await showDialog<String>(
                               context: context,
@@ -677,7 +713,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                     child: Text('Ver PDF'),
                                   ),
                                   TextButton(
-                                    onPressed: () => imprimirBoletaTSPL(),
+                                    onPressed: () => Navigator.of(context).pop('imprimir'),
                                     child: Text('Imprimir'),
                                   ),
                                 ],
@@ -690,34 +726,8 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                               });
                               controlador.limpiarCarrito();
                               controlador.codigoBarraController.clear();
-                            } else if (opcion == 'bluetooth') {
-                              final pdf = pw.Document();
-                              pdf.addPage(
-                                pw.Page(
-                                  build: (pw.Context context) {
-                                    return pw.Column(
-                                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                      children: [
-                                        pw.Text('BOLETA ELECTRÓNICA', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                                        pw.SizedBox(height: 10),
-                                        pw.Text('Emisor: Empresa de Ejemplo SpA'),
-                                        pw.Text('RUT: 76.123.456-7'),
-                                        pw.Text('Fecha: ${DateTime.now().toString().substring(0, 16)}'),
-                                        pw.SizedBox(height: 10),
-                                        pw.Text('Detalle de productos/servicios:'),
-                                        ...controlador.selectedProducts.map((p) => pw.Bullet(text: '${p.nombreProducto ?? ''} - ${p.precioVenta ?? ''} x${p.cantidad ?? 1}')),
-                                        pw.SizedBox(height: 10),
-                                        pw.Text('Total: \\${controlador.total.value}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                                        pw.SizedBox(height: 20),
-                                        pw.Divider(),
-                                        pw.Text('FIRMA ELECTRÓNICA SII (simulada):', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                                        pw.Text('SII: 2026-05-01T12:00:00Z'),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              );
-                              await _imprimirPdfComoImagen(pdf);
+                            } else if (opcion == 'imprimir') {
+                              imprimirBoletaTSPL();
                             }
                           }
                         },
