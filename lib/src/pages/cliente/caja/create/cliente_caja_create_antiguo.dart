@@ -1,4 +1,5 @@
 
+// ...existing code...
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
@@ -15,11 +16,281 @@ import 'package:printing/printing.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'dart:ui' as ui;
 import 'package:posmobilfinal/src/pages/configuraciones/impresora.dart';
+// --- COLOCAR DESPUÉS DE TODOS LOS IMPORTS ---
+
+/// Página de prueba para impresión TSPL de imagen
+class PruebaTSPLPage extends StatelessWidget {
+      /// Imprime un bloque negro sólido de 384x32 usando TSPL BITMAP (test de formato)
+      Future<void> imprimirBloqueNegroTSPL(BuildContext context) async {
+        try {
+          int widthPx = 384;
+          int height = 32;
+          int widthBytes = widthPx ~/ 8; // 48
+          // Cada byte=0xFF (8 píxeles negros)
+          List<int> bitmap = List.filled(widthBytes * height, 0xFF);
+          String tspl = '! 0 200 200 ${height + 20} 1\r\n';
+          tspl += 'BITMAP 0 0 $widthBytes $height 1 ';
+          String hex = bitmap.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+          tspl += hex + '\r\nPRINT\r\n';
+          print('TSPL bloque negro (primeros 200 chars):\n' + tspl.substring(0, tspl.length > 200 ? 200 : tspl.length));
+          await bluetooth.write(tspl);
+          Get.snackbar('Impresión', 'Bloque negro enviado como TSPL BITMAP');
+        } catch (e, st) {
+          Get.snackbar('Error de impresión', e.toString());
+          print('Error impresión bloque negro TSPL: $e\n$st');
+        }
+      }
+    /// Genera una imagen de prueba (texto negro sobre fondo blanco) y la imprime como TSPL BITMAP
+    Future<void> imprimirImagenTestTSPL(BuildContext context) async {
+      try {
+        // Cargar fuente bitmap desde assets
+        final fntStr = await rootBundle.loadString('assets/fonts/arial14.fnt');
+        final pngBytes = await rootBundle.load('assets/fonts/arial14.png');
+        final pngImg = img.decodePng(pngBytes.buffer.asUint8List());
+        if (pngImg == null) throw Exception('No se pudo decodificar arial14.png');
+        final font = img.BitmapFont.fromFnt(fntStr, pngImg);
+
+        // Crear imagen de 384x120 px, fondo blanco, texto negro
+        final img.Image testImg = img.Image(width: 384, height: 120);
+        img.fill(testImg, color: img.ColorRgb8(255, 255, 255));
+        img.drawLine(testImg, x1: 0, y1: 40, x2: 383, y2: 40, color: img.ColorRgb8(0, 0, 0));
+        img.drawString(testImg, 'PRUEBA IMPRESORA', font: font);
+        img.drawString(testImg, 'Ancho: 384 px', font: font, y: 60);
+        img.drawString(testImg, 'Fecha: ${DateTime.now().toString().substring(0, 16)}', font: font, y: 90);
+
+        // Binarizar (umbral 128)
+        int width = testImg.width;
+        int height = testImg.height;
+        int paddedWidth = (width % 8 == 0) ? width : (width + (8 - width % 8));
+        img.Image bw = img.Image(width: paddedWidth, height: height);
+        for (int y0 = 0; y0 < height; y0++) {
+          for (int x0 = 0; x0 < width; x0++) {
+            final pixel = testImg.getPixel(x0, y0);
+            final luma = (0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b).round();
+            if (luma > 128) {
+              bw.setPixelRgba(x0, y0, 255, 255, 255, 255);
+            } else {
+              bw.setPixelRgba(x0, y0, 0, 0, 0, 255);
+            }
+          }
+          for (int x0 = width; x0 < paddedWidth; x0++) {
+            bw.setPixelRgba(x0, y0, 255, 255, 255, 255);
+          }
+        }
+        int widthBytes = paddedWidth ~/ 8;
+        List<int> bitmap = [];
+        for (int row = 0; row < height; row++) {
+          for (int byte = 0; byte < widthBytes; byte++) {
+            int b = 0;
+            for (int bit = 0; bit < 8; bit++) {
+              int xpix = byte * 8 + bit;
+              b <<= 1;
+              if (xpix < paddedWidth) {
+                final color = bw.getPixel(xpix, row);
+                final r = color.r;
+                if (r < 128) b |= 1;
+              }
+            }
+            bitmap.add(b);
+          }
+        }
+        String tspl = '! 0 200 200 ${height + 20} 1\r\n';
+        tspl += 'BITMAP 0 0 $widthBytes $height 1 ';
+        String hex = bitmap.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+        tspl += hex + '\r\nPRINT\r\n';
+        print('TSPL generado para imagen de test (primeros 500 chars):\n' + tspl.substring(0, tspl.length > 500 ? 500 : tspl.length));
+        await bluetooth.write(tspl);
+        Get.snackbar('Impresión', 'Imagen de test enviada como TSPL BITMAP');
+      } catch (e, st) {
+        Get.snackbar('Error de impresión', e.toString());
+        print('Error impresión TSPL test: $e\n$st');
+      }
+    }
+  final BlueThermalPrinter bluetooth;
+  final GetStorage storage;
+  const PruebaTSPLPage({Key? key, required this.bluetooth, required this.storage}) : super(key: key);
+
+  /// Imprime una imagen PNG de ejemplo desde assets/fonts/TECNOALSA LOGO2.png como TSPL BITMAP redimensionada a 200px de ancho
+  Future<void> imprimirImagenTSPL(BuildContext context) async {
+    try {
+      // Cargar imagen de ejemplo desde assets/fonts/TECNOALSA LOGO2.png
+      final ByteData imgBytes = await rootBundle.load('assets/fonts/TECNOALSA LOGO2.png');
+      final Uint8List imageData = imgBytes.buffer.asUint8List();
+
+      // --- Lógica de conexión y envío TSPL ---
+      final impresoraGuardada = storage.read('impresora');
+      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+        Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+        return;
+      }
+      final String address = impresoraGuardada['address'].toString();
+      final List<BluetoothDevice> bonded = await bluetooth.getBondedDevices();
+      BluetoothDevice? device;
+      for (final d in bonded) {
+        if (d.address == address) {
+          device = d;
+          break;
+        }
+      }
+      if (device == null) {
+        Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+        return;
+      }
+      final bool? conectado = await bluetooth.isConnected;
+      if (conectado != true) {
+        await bluetooth.connect(device);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+
+      // --- Redimensionar la imagen a 384px de ancho (manteniendo aspecto) ---
+      final img.Image? original = img.decodeImage(imageData);
+      if (original == null) throw Exception('No se pudo decodificar la imagen');
+      int targetWidth = 384;
+      int targetHeight = (original.height * (targetWidth / original.width)).round();
+      img.Image resized = img.copyResize(original, width: targetWidth, height: targetHeight);
+
+      // Asegurar que el ancho sea múltiplo de 8
+      int width = resized.width;
+      int height = resized.height;
+      int paddedWidth = (width % 8 == 0) ? width : (width + (8 - width % 8));
+      int widthBytes = paddedWidth ~/ 8;
+      int umbral = 180; // UMBRAL alto para que más píxeles sean blancos
+      img.Image bw = img.Image(width: paddedWidth, height: height);
+      List<int> lumasDebug = [];
+      for (int y0 = 0; y0 < height; y0++) {
+        for (int x0 = 0; x0 < width; x0++) {
+          final pixel = resized.getPixel(x0, y0);
+          final r = pixel.r;
+          final g = pixel.g;
+          final b = pixel.b;
+          final luma = (0.299 * r + 0.587 * g + 0.114 * b).round();
+          if (lumasDebug.length < 20) lumasDebug.add(luma);
+          if (luma > umbral) {
+            bw.setPixelRgba(x0, y0, 255, 255, 255, 255); // blanco
+          } else {
+            bw.setPixelRgba(x0, y0, 0, 0, 0, 255); // negro
+          }
+        }
+        for (int x0 = width; x0 < paddedWidth; x0++) {
+          bw.setPixelRgba(x0, y0, 255, 255, 255, 255); // padding blanco
+        }
+      }
+      print('Primeros 20 valores de luma: ' + lumasDebug.toString());
+      List<int> bitmap = [];
+      for (int row = 0; row < height; row++) {
+        for (int byte = 0; byte < widthBytes; byte++) {
+          int b = 0;
+          for (int bit = 0; bit < 8; bit++) {
+            int xpix = byte * 8 + bit;
+            b <<= 1;
+            if (xpix < paddedWidth) {
+              final color = bw.getPixel(xpix, row);
+              final r = color.r;
+              // bit=1 si es negro
+              if (r < 128) b |= 1;
+            }
+          }
+          bitmap.add(b);
+        }
+      }
+      // Debug: mostrar los primeros 100 bytes del bitmap
+      print('Primeros 100 bytes del bitmap: ' + bitmap.take(100).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' '));
+      String tspl = '! 0 200 200 ${height + 20} 1\r\n';
+      tspl += 'BITMAP 0 0 $widthBytes $height 1 ';
+      String hex = bitmap.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+      tspl += hex + '\r\nPRINT\r\n';
+      print('TSPL generado para imagen (primeros 500 chars):\n' + tspl.substring(0, tspl.length > 500 ? 500 : tspl.length));
+      await bluetooth.write(tspl);
+      Get.snackbar('Impresión', 'Imagen de ejemplo enviada como TSPL BITMAP (ancho 384, bit=1 negro, umbral 180)');
+    } catch (e, st) {
+      Get.snackbar('Error de impresión', e.toString());
+      print('Error impresión TSPL test: $e\n$st');
+    }
+  }
+
+  /// Enviar un comando TSPL de texto simple para verificar comunicación
+  Future<void> imprimirTSPLTextoSimple(BuildContext context) async {
+    try {
+      final impresoraGuardada = storage.read('impresora');
+      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+        Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+        return;
+      }
+      final String address = impresoraGuardada['address'].toString();
+      final List<BluetoothDevice> bonded = await bluetooth.getBondedDevices();
+      BluetoothDevice? device;
+      for (final d in bonded) {
+        if (d.address == address) {
+          device = d;
+          break;
+        }
+      }
+      if (device == null) {
+        Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+        return;
+      }
+      final bool? conectado = await bluetooth.isConnected;
+      if (conectado != true) {
+        await bluetooth.connect(device);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+      // Ancho 384px (58mm), fuente 9 (la más grande), texto centrado
+      String tspl = '! 0 200 200 350 1\r\n';
+      tspl += 'TEXT 9 0 30 120 "TEXTO GRANDE"\r\n';
+      tspl += 'TEXT 9 0 30 200 "FUENTE 9"\r\n';
+      tspl += 'PRINT\r\n';
+      print('TSPL de texto grande (fuente 9):\n' + tspl);
+      await bluetooth.write(tspl);
+      Get.snackbar('Impresión', 'Comando TSPL de texto enviado (fuente 9)');
+    } catch (e, st) {
+      Get.snackbar('Error de impresión', e.toString());
+      print('Error impresión TSPL texto simple: $e\n$st');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Prueba TSPL Imagen')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton.icon(
+              icon: Icon(Icons.print),
+              label: Text('Imprimir imagen TSPL (200px ancho)'),
+              onPressed: () => imprimirImagenTSPL(context),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: Icon(Icons.stop),
+              label: Text('Imprimir bloque negro (TSPL)'),
+              onPressed: () => imprimirBloqueNegroTSPL(context),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: Icon(Icons.image),
+              label: Text('Imprimir imagen de test (memoria)'),
+              onPressed: () => imprimirImagenTestTSPL(context),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: Icon(Icons.text_fields),
+              label: Text('Imprimir texto TSPL simple'),
+              onPressed: () => imprimirTSPLTextoSimple(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 
 // ...el resto del código debe estar dentro de la clase ClienteCajaCreatePage o su State
 
 class ClienteCajaCreatePage extends StatefulWidget {
-
   @override
   State<ClienteCajaCreatePage> createState() => _ClienteCajaCreatePageState();
 }
@@ -56,33 +327,41 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
       );
       return pdf;
     }
-  /// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime
+  /// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime (robusto)
   Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}) async {
     try {
       // Decodificar la imagen
       final img.Image? original = img.decodeImage(imageBytes);
       if (original == null) throw Exception('No se pudo decodificar la imagen');
-      // Convertir a blanco y negro (umbral manual)
-      final img.Image bw = img.grayscale(original);
-      for (int py = 0; py < bw.height; py++) {
-        for (int px = 0; px < bw.width; px++) {
-          final pixel = bw.getPixel(px, py);
+
+      // Asegurar que el ancho sea múltiplo de 8 (TSPL lo requiere)
+      int width = original.width;
+      int height = original.height;
+      int paddedWidth = (width % 8 == 0) ? width : (width + (8 - width % 8));
+      img.Image bw = img.Image(width: paddedWidth, height: height);
+
+      // Convertir a blanco y negro puro (umbral manual)
+      for (int y0 = 0; y0 < height; y0++) {
+        for (int x0 = 0; x0 < width; x0++) {
+          final pixel = original.getPixel(x0, y0);
           final r = pixel.r;
           final g = pixel.g;
           final b = pixel.b;
           final luma = (0.299 * r + 0.587 * g + 0.114 * b).round();
           if (luma > 128) {
-            bw.setPixelRgba(px, py, 255, 255, 255, 255);
+            bw.setPixelRgba(x0, y0, 255, 255, 255, 255);
           } else {
-            bw.setPixelRgba(px, py, 0, 0, 0, 255);
+            bw.setPixelRgba(x0, y0, 0, 0, 0, 255);
           }
         }
+        // Si el ancho fue rellenado, completa con blanco
+        for (int x0 = width; x0 < paddedWidth; x0++) {
+          bw.setPixelRgba(x0, y0, 255, 255, 255, 255);
+        }
       }
-      // El ancho debe ser múltiplo de 8 para TSPL
-      int width = bw.width;
-      int height = bw.height;
-      int widthBytes = (width + 7) ~/ 8;
+
       // Empaquetar los datos en formato bitmap TSPL (1 bit por pixel, MSB primero)
+      int widthBytes = paddedWidth ~/ 8;
       List<int> bitmap = [];
       for (int row = 0; row < height; row++) {
         for (int byte = 0; byte < widthBytes; byte++) {
@@ -90,7 +369,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
           for (int bit = 0; bit < 8; bit++) {
             int xpix = byte * 8 + bit;
             b <<= 1;
-            if (xpix < width) {
+            if (xpix < paddedWidth) {
               final color = bw.getPixel(xpix, row);
               final r = color.r;
               // Si es negro, bit=1
@@ -100,12 +379,14 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
           bitmap.add(b);
         }
       }
+
       // Comando TSPL BITMAP
       String tspl = '! 0 200 200 ${height + 20} 1\r\n';
-      tspl += 'BITMAP $x $y $width $height 1 '; // modo 1: overwrite
-      // Convertir a hex string
+      tspl += 'BITMAP $x $y $widthBytes $height 1 ';
       String hex = bitmap.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
       tspl += hex + '\r\nPRINT\r\n';
+
+      print('TSPL BITMAP width: $paddedWidth, height: $height, bytes: ${bitmap.length}');
       await _bluetooth.write(tspl);
       Get.snackbar('Impresión', 'Imagen enviada como TSPL BITMAP');
     } catch (e, st) {
@@ -295,21 +576,23 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
           IconButton(
             icon: Icon(Icons.bluetooth),
             onPressed: () async {
-              // Abrir página de selección de impresora Bluetooth
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) =>
-                  // Importa la página de impresoras si no está importada
-                  // ignore: prefer_const_constructors
-                  ImpresorasPage()
-                ),
+                MaterialPageRoute(builder: (context) => ImpresorasPage()),
               );
             },
           ),
           IconButton(
             icon: Icon(Icons.print),
+            tooltip: 'Prueba TSPL',
             onPressed: () {
-              // Ejecutar prueba de impresión
-              imprimirPruebaEscPos();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => PruebaTSPLPage(
+                    bluetooth: _bluetooth,
+                    storage: _storage,
+                  ),
+                ),
+              );
             },
           ),
           IconButton(
