@@ -16,6 +16,7 @@ import 'package:printing/printing.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'dart:ui' as ui;
 import 'package:posmobilfinal/src/pages/configuraciones/impresora.dart';
+import 'package:posmobilfinal/utils/tspl_utils.dart';
 // --- COLOCAR DESPUÉS DE TODOS LOS IMPORTS ---
 
 /// Página de prueba para impresión TSPL de imagen
@@ -327,73 +328,8 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
       );
       return pdf;
     }
-  /// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime (robusto)
-  Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}) async {
-    try {
-      // Decodificar la imagen
-      final img.Image? original = img.decodeImage(imageBytes);
-      if (original == null) throw Exception('No se pudo decodificar la imagen');
 
-      // Asegurar que el ancho sea múltiplo de 8 (TSPL lo requiere)
-      int width = original.width;
-      int height = original.height;
-      int paddedWidth = (width % 8 == 0) ? width : (width + (8 - width % 8));
-      img.Image bw = img.Image(width: paddedWidth, height: height);
-
-      // Convertir a blanco y negro puro (umbral manual)
-      for (int y0 = 0; y0 < height; y0++) {
-        for (int x0 = 0; x0 < width; x0++) {
-          final pixel = original.getPixel(x0, y0);
-          final r = pixel.r;
-          final g = pixel.g;
-          final b = pixel.b;
-          final luma = (0.299 * r + 0.587 * g + 0.114 * b).round();
-          if (luma > 128) {
-            bw.setPixelRgba(x0, y0, 255, 255, 255, 255);
-          } else {
-            bw.setPixelRgba(x0, y0, 0, 0, 0, 255);
-          }
-        }
-        // Si el ancho fue rellenado, completa con blanco
-        for (int x0 = width; x0 < paddedWidth; x0++) {
-          bw.setPixelRgba(x0, y0, 255, 255, 255, 255);
-        }
-      }
-
-      // Empaquetar los datos en formato bitmap TSPL (1 bit por pixel, MSB primero)
-      int widthBytes = paddedWidth ~/ 8;
-      List<int> bitmap = [];
-      for (int row = 0; row < height; row++) {
-        for (int byte = 0; byte < widthBytes; byte++) {
-          int b = 0;
-          for (int bit = 0; bit < 8; bit++) {
-            int xpix = byte * 8 + bit;
-            b <<= 1;
-            if (xpix < paddedWidth) {
-              final color = bw.getPixel(xpix, row);
-              final r = color.r;
-              // Si es negro, bit=1
-              if (r < 128) b |= 1;
-            }
-          }
-          bitmap.add(b);
-        }
-      }
-
-      // Comando TSPL BITMAP
-      String tspl = '! 0 200 200 ${height + 20} 1\r\n';
-      tspl += 'BITMAP $x $y $widthBytes $height 1 ';
-      String hex = bitmap.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
-      tspl += hex + '\r\nPRINT\r\n';
-
-      print('TSPL BITMAP width: $paddedWidth, height: $height, bytes: ${bitmap.length}');
-      await _bluetooth.write(tspl);
-      Get.snackbar('Impresión', 'Imagen enviada como TSPL BITMAP');
-    } catch (e, st) {
-      Get.snackbar('Error de impresión', e.toString());
-      print('Error impresión imagen TSPL: $e\n$st');
-    }
-  }
+/// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime (robusto)
 
   /// Imprime la boleta en formato TSPL usando datos reales y el TED como imagen
   void imprimirBoletaTSPL() async {
