@@ -106,7 +106,9 @@ Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}
           int px = bx * 8 + bit;
           final pixel = bw.getPixel(px, y0);
           final int r = pixel.r.toInt();
-          if (r < 128) {
+          // Esta impresora interpreta el bit en polaridad inversa: 0=negro, 1=blanco.
+          // Por eso marcamos 1 para blanco y dejamos 0 para negro.
+          if (r >= 128) {
             byte |= (1 << (7 - bit));
           }
         }
