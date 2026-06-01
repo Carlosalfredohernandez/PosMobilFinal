@@ -4,9 +4,6 @@ import 'package:image/image.dart' as img;
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 /// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime (robusto)
 /// [printableWidth] permite calibrar recorte lateral (ej: 372, 376, 380).
@@ -60,59 +57,6 @@ Future<void> imprimirImagenComoTSPL(
       }
     }
 
-    // Guardar imagen original (antes de binarizar) en Descargas para depuración
-    try {
-      Directory? downloadsDir;
-      if (Platform.isAndroid) {
-        downloadsDir = Directory('/storage/emulated/0/Download');
-      } else {
-        downloadsDir = await getDownloadsDirectory();
-      }
-      if (downloadsDir != null) {
-        final originalPath = '${downloadsDir.path}/debug_original.png';
-        final originalBytes = img.encodePng(original);
-        final originalFile = File(originalPath);
-        await originalFile.writeAsBytes(originalBytes);
-        print('Imagen original guardada en Descargas: ' + originalPath);
-      } else {
-        print('No se pudo obtener la carpeta de Descargas para original');
-      }
-    } catch (e) {
-      print('No se pudo guardar imagen original en Descargas: ' + e.toString());
-    }
-
-    // Guardar imagen binarizada en Descargas para depuración
-    // Solicitar permiso de almacenamiento de forma robusta
-    bool permisoOk = true;
-    if (Platform.isAndroid) {
-      final status = await Permission.manageExternalStorage.request();
-      if (!status.isGranted) {
-        final legacyStatus = await Permission.storage.request();
-        if (!legacyStatus.isGranted) {
-          permisoOk = false;
-          print('Permiso de almacenamiento denegado. No se guardará la imagen en Descargas.');
-          Get.snackbar('Permiso requerido', 'Debes otorgar permiso de almacenamiento para guardar la imagen en Descargas.');
-        }
-      }
-    }
-    if (permisoOk) {
-      Directory? downloadsDir;
-      if (Platform.isAndroid) {
-        downloadsDir = Directory('/storage/emulated/0/Download');
-      } else {
-        downloadsDir = await getDownloadsDirectory();
-      }
-      if (downloadsDir != null) {
-        final debugPath = '${downloadsDir.path}/debug_bw.png';
-        final debugBytes = img.encodePng(bw);
-        final debugFile = File(debugPath);
-        await debugFile.writeAsBytes(debugBytes);
-        print('Imagen binarizada guardada en Descargas: ' + debugPath);
-      } else {
-        print('No se pudo obtener la carpeta de Descargas');
-      }
-    }
-
     // Convertir a bytes TSPL (1 bit por pixel, 8 píxeles por byte)
     int widthBytes = paddedWidth ~/ 8;
     List<int> tsplBytes = [];
@@ -141,7 +85,6 @@ Future<void> imprimirImagenComoTSPL(
     builder.add(tsplBytes);
     builder.add(latin1.encode(footer));
     final rawCommand = builder.toBytes();
-    print('Comando BITMAP binario generado: ${rawCommand.length} bytes');
     await bluetooth.writeBytes(rawCommand);
     Get.snackbar('Impresión', 'Imagen enviada como TSPL BITMAP');
   } catch (e, st) {
