@@ -1,9 +1,8 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:image/image.dart' as img;
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
-import 'dart:io' as io;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -11,7 +10,6 @@ import 'package:permission_handler/permission_handler.dart';
 /// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime (robusto)
 Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}) async {
   final BlueThermalPrinter bluetooth = BlueThermalPrinter.instance;
-  final GetStorage storage = GetStorage();
   try {
     // Decodificar la imagen
     final img.Image? original = img.decodeImage(imageBytes);
@@ -23,14 +21,20 @@ Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}
     int paddedWidth = (width % 8 == 0) ? width : (width + (8 - width % 8));
     img.Image bw = img.Image(width: paddedWidth, height: height);
 
-    // Convertir a blanco y negro puro (umbral manual)
+    // Convertir a blanco y negro puro (umbral manual), manejando transparencia
     for (int y0 = 0; y0 < height; y0++) {
       for (int x0 = 0; x0 < width; x0++) {
         final pixel = original.getPixel(x0, y0);
-        final r = pixel.r;
-        final g = pixel.g;
-        final b = pixel.b;
-        final gray = (r * 0.3 + g * 0.59 + b * 0.11).round().toInt();
+        final int a = pixel.a.toInt();
+        final int r = pixel.r.toInt();
+        final int g = pixel.g.toInt();
+        final int b = pixel.b.toInt();
+        // Si el pixel es transparente, lo tratamos como blanco
+        if (a < 128) {
+          bw.setPixel(x0, y0, img.ColorRgb8(255, 255, 255));
+          continue;
+        }
+        final gray = (r * 0.3 + g * 0.59 + b * 0.11).round();
         final bwColor = gray > 160 ? 255 : 0;
         bw.setPixel(x0, y0, img.ColorRgb8(bwColor, bwColor, bwColor));
       }
@@ -61,14 +65,20 @@ Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}
     }
 
     // Guardar imagen binarizada en Descargas para depuración
-    try {
-      // Solicitar permiso de almacenamiento si es necesario
-      if (Platform.isAndroid) {
-        var status = await Permission.storage.request();
-        if (!status.isGranted) {
-          print('Permiso de almacenamiento denegado');
+    // Solicitar permiso de almacenamiento de forma robusta
+    bool permisoOk = true;
+    if (Platform.isAndroid) {
+      final status = await Permission.manageExternalStorage.request();
+      if (!status.isGranted) {
+        final legacyStatus = await Permission.storage.request();
+        if (!legacyStatus.isGranted) {
+          permisoOk = false;
+          print('Permiso de almacenamiento denegado. No se guardará la imagen en Descargas.');
+          Get.snackbar('Permiso requerido', 'Debes otorgar permiso de almacenamiento para guardar la imagen en Descargas.');
         }
       }
+    }
+    if (permisoOk) {
       Directory? downloadsDir;
       if (Platform.isAndroid) {
         downloadsDir = Directory('/storage/emulated/0/Download');
@@ -84,8 +94,6 @@ Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}
       } else {
         print('No se pudo obtener la carpeta de Descargas');
       }
-    } catch (e) {
-      print('No se pudo guardar imagen de depuración en Descargas: ' + e.toString());
     }
 
     // Convertir a bytes TSPL (1 bit por pixel, 8 píxeles por byte)
@@ -97,16 +105,7 @@ Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}
         for (int bit = 0; bit < 8; bit++) {
           int px = bx * 8 + bit;
           final pixel = bw.getPixel(px, y0);
-          dynamic r;
-          // Soporta tanto Pixel (objeto) como int (ARGB)
-          if (pixel is int) {
-            r = ((pixel as int) >> 16) & 0xFF;
-          } else if (pixel is img.Pixel) {
-            r = pixel.r;
-            if (r is num) r = r.toInt();
-          } else {
-            throw Exception('Tipo de pixel no soportado: \\${pixel.runtimeType}');
-          }
+          final int r = pixel.r.toInt();
           if (r < 128) {
             byte |= (1 << (7 - bit));
           }
@@ -115,13 +114,16 @@ Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}
       }
     }
 
-    // Comando TSPL
-    String tspl = '! 0 200 200 ${height + 20} 1\r\n';
-    tspl += 'BITMAP $x $y $widthBytes $height 1 ';
-    String hex = tsplBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
-    tspl += hex + '\r\nPRINT\r\n';
-    print('TSPL generado (primeros 200 chars):\n' + tspl.substring(0, tspl.length > 200 ? 200 : tspl.length));
-    await bluetooth.write(tspl);
+    // Comando CPCL/TSPL: enviar BITMAP con payload binario (no hex en texto)
+    final header = '! 0 200 200 ${height + 20} 1\r\nBITMAP $x $y $widthBytes $height 0 ';
+    final footer = '\r\nPRINT\r\n';
+    final builder = BytesBuilder();
+    builder.add(latin1.encode(header));
+    builder.add(tsplBytes);
+    builder.add(latin1.encode(footer));
+    final rawCommand = builder.toBytes();
+    print('Comando BITMAP binario generado: ${rawCommand.length} bytes');
+    await bluetooth.writeBytes(rawCommand);
     Get.snackbar('Impresión', 'Imagen enviada como TSPL BITMAP');
   } catch (e, st) {
     Get.snackbar('Error de impresión', e.toString());

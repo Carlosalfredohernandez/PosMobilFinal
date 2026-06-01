@@ -30,8 +30,10 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
   }
 
   Future<void> _generarPdfYMostrar() async {
+    print('[PDF] Iniciando generación de PDF...');
     final arguments = Get.arguments as Map<String, dynamic>?;
     if (arguments == null) {
+      print('[PDF] Error: No se recibieron argumentos');
       setState(() { _loading = false; });
       Get.snackbar('Error', 'No se recibieron argumentos para generar el PDF');
       return;
@@ -43,26 +45,35 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
       final boleta = arguments['xml_string'] != null
           ? parseBoletaXml(arguments['xml_string'])
           : arguments;
+      print('[PDF] Generando PDF en: $outputPath');
       await BoletaPdfPosGenerator.generarPdfDesdeMapa(boleta, outputPath);
-      // Verificar que el archivo existe y tiene tamaño válido
       final pdfFile = File(outputPath);
-      if (!await pdfFile.exists() || await pdfFile.length() < 100) {
+      final exists = await pdfFile.exists();
+      final size = exists ? await pdfFile.length() : 0;
+      print('[PDF] Archivo generado: existe=$exists, tamaño=$size bytes');
+      if (!exists || size < 100) {
+        print('[PDF] Error: El PDF generado está vacío o corrupto');
         setState(() { _loading = false; });
         Get.snackbar('Error', 'El PDF generado está vacío o corrupto');
         return;
       }
-      setState(() {
-        _pdfPath = outputPath;
-        try {
-          _pdfController = PdfController(
-            document: PdfDocument.openFile(outputPath),
-          );
-        } catch (e) {
-          Get.snackbar('Error', 'No se pudo abrir el PDF: $e');
-        }
-        _loading = false;
-      });
+      try {
+        final controller = PdfController(
+          document: PdfDocument.openFile(outputPath),
+        );
+        setState(() {
+          _pdfPath = outputPath;
+          _pdfController = controller;
+          _loading = false;
+        });
+        print('[PDF] PDF listo y controlador inicializado');
+      } catch (e) {
+        print('[PDF] Error al abrir el PDF: $e');
+        setState(() { _loading = false; });
+        Get.snackbar('Error', 'No se pudo abrir el PDF: $e');
+      }
     } catch (e) {
+      print('[PDF] Error inesperado: $e');
       setState(() { _loading = false; });
       Get.snackbar('Error', 'No se pudo generar el PDF: $e');
     }
