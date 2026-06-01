@@ -3,28 +3,45 @@ import 'dart:convert';
 import 'package:image/image.dart' as img;
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Convierte una imagen PNG (Uint8List) a BITMAP TSPL y la imprime (robusto)
-Future<void> imprimirImagenComoTSPL(Uint8List imageBytes, {int x = 0, int y = 0}) async {
+/// [printableWidth] permite calibrar recorte lateral (ej: 372, 376, 380).
+Future<void> imprimirImagenComoTSPL(
+  Uint8List imageBytes, {
+  int x = 0,
+  int y = 0,
+  int? printableWidth,
+}) async {
   final BlueThermalPrinter bluetooth = BlueThermalPrinter.instance;
+  final GetStorage storage = GetStorage();
   try {
     // Decodificar la imagen
     final img.Image? original = img.decodeImage(imageBytes);
     if (original == null) throw Exception('No se pudo decodificar la imagen');
 
+    // Margen de seguridad: algunas impresoras de 80mm recortan el borde derecho en 384px.
+    // Se deja configurable para calibrar por modelo.
+    final dynamic savedPrintableWidth = storage.read('printable_width');
+    final int resolvedPrintableWidth = printableWidth ?? (savedPrintableWidth is int ? savedPrintableWidth : 376);
+    final int safePrintableWidth = resolvedPrintableWidth.clamp(320, 384);
+    final img.Image source = original.width > safePrintableWidth
+      ? img.copyResize(original, width: safePrintableWidth)
+      : original;
+
     // Asegurar que el ancho sea múltiplo de 8 (TSPL lo requiere)
-    int width = original.width;
-    int height = original.height;
+    int width = source.width;
+    int height = source.height;
     int paddedWidth = (width % 8 == 0) ? width : (width + (8 - width % 8));
     img.Image bw = img.Image(width: paddedWidth, height: height);
 
     // Convertir a blanco y negro puro (umbral manual), manejando transparencia
     for (int y0 = 0; y0 < height; y0++) {
       for (int x0 = 0; x0 < width; x0++) {
-        final pixel = original.getPixel(x0, y0);
+        final pixel = source.getPixel(x0, y0);
         final int a = pixel.a.toInt();
         final int r = pixel.r.toInt();
         final int g = pixel.g.toInt();
