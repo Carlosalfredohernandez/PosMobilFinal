@@ -855,23 +855,23 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
       if (cargando) {
         color = Colors.blueGrey;
         icono = Icons.hourglass_top;
-        texto = 'Folios: consultando...';
+        texto = 'Folios afecta (39): consultando...';
       } else if (folios == null) {
         color = Colors.blueGrey;
         icono = Icons.help_outline;
-        texto = 'Folios: no disponible';
+        texto = 'Folios afecta (39): no disponible';
       } else if (folios <= 0) {
         color = Colors.red;
         icono = Icons.error_outline;
-        texto = 'Folios: agotados';
+        texto = 'Folios afecta (39): agotados';
       } else if (folios <= umbral) {
         color = Colors.orange;
         icono = Icons.warning_amber_rounded;
-        texto = 'Folios: $folios (bajo)';
+        texto = 'Folios afecta (39): $folios (bajo)';
       } else {
         color = Colors.green;
         icono = Icons.verified_outlined;
-        texto = 'Folios: $folios';
+        texto = 'Folios afecta (39): $folios';
       }
 
       return Container(
@@ -1132,6 +1132,8 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: () async {
+                          final parentContext = this.context;
+
                           if (controlador.isLoading.value) {
                             return;
                           }
@@ -1153,7 +1155,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                             return;
                           }
 
-                          await controlador.emitirBoletaSii(context: context);
+                          await controlador.emitirBoletaSii(context: parentContext);
                           if ((controlador.dteXmlString ?? '').isNotEmpty) {
                             // --- Asignar datos de boleta para impresión ---
                             _boletaData = {
@@ -1178,8 +1180,8 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                             if (!mounted) return;
 
                             final opcion = await showDialog<String>(
-                              context: context,
-                              builder: (context) => AlertDialog(
+                              context: parentContext,
+                              builder: (dialogContext) => AlertDialog(
                                 title: Text('¿Qué desea hacer?'),
                                 content: Text(
                                   impresoraDisponible
@@ -1189,16 +1191,16 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                 actions: [
                                   if (!impresoraDisponible)
                                     TextButton(
-                                      onPressed: () => Navigator.of(context).pop('configurar_impresora'),
+                                      onPressed: () => Navigator.of(dialogContext).pop('configurar_impresora'),
                                       child: Text('Configurar impresora'),
                                     ),
                                   TextButton(
-                                    onPressed: () => Navigator.of(context).pop('pdf'),
+                                    onPressed: () => Navigator.of(dialogContext).pop('pdf'),
                                     child: Text('Ver PDF'),
                                   ),
                                   if (impresoraDisponible)
                                     TextButton(
-                                      onPressed: () => Navigator.of(context).pop('imprimir'),
+                                      onPressed: () => Navigator.of(dialogContext).pop('imprimir'),
                                       child: Text('Imprimir'),
                                     ),
                                 ],
@@ -1212,7 +1214,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                               controlador.limpiarCarrito();
                               controlador.codigoBarraController.clear();
                             } else if (opcion == 'configurar_impresora') {
-                              await Navigator.of(context).push(
+                              await Navigator.of(parentContext).push(
                                 MaterialPageRoute(
                                   builder: (context) => ImpresorasPage(),
                                 ),
