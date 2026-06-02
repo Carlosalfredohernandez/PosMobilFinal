@@ -240,3 +240,49 @@ Fecha: 13-05-2026 (actualizado)
 - Si ocurre error de conexión, cerrar otras apps que usen la impresora y volver a intentar.
 - Para impresoras nuevas, probar primero la impresión de prueba desde la app.
 - Si la impresión de imágenes sale distorsionada, ajustar el ancho de la imagen a 384px (o el ancho nativo de la impresora).
+
+## 15. Avances recientes (29-05 al 01-06-2026)
+
+### Impresión TSPL/POS: estabilidad de extremo a extremo
+- Se consolidó la impresión de boleta rasterizada a TSPL con conversión robusta de imagen y manejo correcto de píxeles según la API de `image` 4.x.
+- Se corrigió el problema de franjas verticales en la boleta: el comando `BITMAP` ahora se envía como bytes binarios reales (`writeBytes`) y no como string hexadecimal.
+- Se corrigió la polaridad de bits (contraste invertido), evitando boletas con fondo oscuro y texto claro.
+- Se ajustó el ancho imprimible para evitar corte en margen derecho y se dejó configurable por modelo de impresora.
+
+### Configuración de impresora: calibración sin recompilar
+- Se agregó control de `Ancho imprimible` en la pantalla de configuración de impresora (`impresora.dart`).
+- El valor se guarda en `GetStorage` (`printable_width`) y se aplica automáticamente durante la impresión TSPL.
+- Rango de calibración implementado: `320` a `384` px (valor recomendado inicial: `376`).
+
+### Visor PDF: robustez ante bloqueos (estado "busy")
+- Se reforzó la apertura del PDF POS para evitar bloqueos al reintentar impresión:
+  - generación de archivo temporal con nombre único por intento,
+  - liberación explícita de `PdfController` en `dispose`,
+  - timeout al abrir el documento,
+  - validaciones `mounted` antes de `setState` en rutas asíncronas.
+- Se corrigió import faltante para `TimeoutException` en la pantalla de boleta PDF POS.
+
+### Emisión SII: diagnóstico real y tolerancia a latencia
+- Se robusteció `BoletaProvider`:
+  - timeout en `generarBoleta`,
+  - captura de error detallado (`status/body`) en `lastError`,
+  - reintentos para obtener XML autorizado (`obtenerXmlBoleta`) con espera entre intentos,
+  - detalle de error en `lastXmlError`.
+- Se actualizó el controlador de caja para mostrar errores reales (no genéricos) al usuario.
+- Se agregó log consolidado por intento de emisión (`[SII_FLOW]`) con etapa, resultado, id/folio, total, items y error final.
+
+### Limpieza de producción
+- Se retiró el guardado de PNGs de depuración y la lógica de permisos de almacenamiento usada solo para debugging de impresión.
+- Se dejó el flujo final más limpio, con menor ruido en logs y enfocado en operación productiva.
+
+### Commits relevantes de este bloque
+- `5b62877` feat(tspl): impresión TSPL robusta a 384px, binarización y pruebas.
+- `f68121d` fix: permisos Android y robustez de generación/visualización PDF.
+- `c299dd5` fix: envío de BITMAP TSPL como bytes binarios (corrige franjas).
+- `f878e87` fix: ajuste de polaridad de bits (corrige contraste invertido).
+- `b98087f` chore: consolidación de configuración de ancho imprimible y mejoras TSPL.
+- `ee074f2` chore: limpieza de debug TSPL para producción.
+
+### Estado actual del módulo de boletas
+- Emisión SII + recuperación XML + generación PDF + visualización + impresión Bluetooth operan de forma integrada.
+- Persisten puntos de calibración fina dependientes de modelo de impresora (ancho/contraste), pero ya quedaron parametrizados para ajuste rápido en operación.
