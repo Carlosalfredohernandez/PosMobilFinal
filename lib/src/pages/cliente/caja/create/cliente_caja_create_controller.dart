@@ -18,10 +18,66 @@ import 'package:xml/xml.dart';
 
 /// 🎮 CONTROLADOR PRINCIPAL DEL POS
 class ClienteCajaCreateController extends GetxController {
+  double _parsePrecio(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 0.0;
+    final normalizado = raw.replaceAll(',', '.').replaceAll(RegExp(r'[^0-9\.]'), '');
+    return double.tryParse(normalizado) ?? 0.0;
+  }
+
+  /// Valida reglas de negocio de una venta antes de emitir la boleta.
+  /// Retorna null si está todo correcto, o un mensaje de error si falla.
+  String? validarVentaAntesDeEmitir({double? montoRecibido}) {
+    if (selectedProducts.isEmpty) {
+      return 'Agrega al menos un producto antes de emitir la boleta.';
+    }
+
+    if (formaPago.trim().isEmpty) {
+      return 'Selecciona una forma de pago antes de continuar.';
+    }
+
+    if (total.value <= 0) {
+      return 'El total debe ser mayor a 0 para emitir la boleta.';
+    }
+
+    for (final p in selectedProducts) {
+      final nombre = (p.nombreProducto ?? '').trim();
+      final cantidad = p.cantidad ?? 0;
+      final precio = _parsePrecio(p.precioVenta);
+
+      if (nombre.isEmpty) {
+        return 'Hay productos sin nombre en el carrito.';
+      }
+      if (cantidad <= 0) {
+        return 'La cantidad de "$nombre" debe ser mayor a 0.';
+      }
+      if (precio <= 0) {
+        return 'El precio de "$nombre" debe ser mayor a 0.';
+      }
+    }
+
+    if (formaPago == 'EFECTIVO' && montoRecibido != null && montoRecibido < total.value) {
+      return 'El monto recibido debe ser mayor o igual al total.';
+    }
+
+    return null;
+  }
+
   /// Emite boleta SII usando la API y guarda el XML real y el ID para el PDF
   Future<void> emitirBoletaSii({required BuildContext context}) async {
+    final errorValidacion = validarVentaAntesDeEmitir();
+    if (errorValidacion != null) {
+      Get.snackbar('Validación', errorValidacion);
+      return;
+    }
+
     isLoading.value = true;
+    String etapa = 'inicio';
+    String resultado = 'ERROR';
+    String? logBoletaId;
+    String? logFolio;
+    String? logError;
     try {
+      etapa = 'construyendo_payload';
       // Construir datos para la API del SII
       final boletaData = {
         'emisor': sesionUsuario.rut ?? '99999999-9',
@@ -45,18 +101,30 @@ class ClienteCajaCreateController extends GetxController {
 
       print('📤 Enviando boleta al SII...');
       final boletaProvider = BoletaProvider();
+      etapa = 'generando_boleta';
       final boletaResponse = await boletaProvider.generarBoleta(boletaData);
       if (boletaResponse == null) {
-        Get.snackbar('❌ Error', 'No se pudo generar la boleta SII');
+        logError = boletaProvider.lastError ?? 'No se pudo generar la boleta SII';
+        Get.snackbar(
+          '❌ Error',
+          logError!,
+        );
         return;
       }
       final boletaId = boletaResponse['id']?.toString() ?? '';
       final folioDte = boletaResponse['folio']?.toString() ?? boletaId;
+      logBoletaId = boletaId;
+      logFolio = folioDte;
       print('✅ Boleta generada con ID: $boletaId, folio: $folioDte');
       // Obtener XML del DTE autorizado
+      etapa = 'obteniendo_xml';
       final xml = await boletaProvider.obtenerXmlBoleta(boletaId);
       if (xml == null || xml.isEmpty) {
-        Get.snackbar('❌ Error', 'No se pudo obtener el XML de la boleta');
+        logError = boletaProvider.lastXmlError ?? 'No se pudo obtener el XML de la boleta';
+        Get.snackbar(
+          '❌ Error',
+          logError!,
+        );
         return;
       }
       print('✅ XML recibido del SII');
@@ -65,6 +133,7 @@ class ClienteCajaCreateController extends GetxController {
       dteBoletaId = boletaId;
       // --- GRABAR EN BACKENDPOSMOBIL ---
       try {
+        etapa = 'grabando_backend';
         // Construir detalles
         List<DetalleBoleta> detalles = selectedProducts.map((p) {
           final precio = double.tryParse(p.precioVenta ?? '0') ?? 0.0;
@@ -133,12 +202,16 @@ class ClienteCajaCreateController extends GetxController {
         print('❌ Error grabando en backendposmobil: $e');
       }
       // --- FIN GRABADO BACKEND ---
+      etapa = 'finalizado';
+      resultado = 'OK';
       Get.snackbar('✅ Éxito', 'Boleta SII emitida y autorizada');
       update();
     } catch (e) {
+      logError = e.toString();
       print('❌ Error emitiendo boleta SII: $e');
       Get.snackbar('❌ Error', 'Error emitiendo boleta SII: $e');
     } finally {
+      print('[SII_FLOW] resultado=$resultado etapa=$etapa boletaId=${logBoletaId ?? ''} folio=${logFolio ?? ''} total=${total.value.toStringAsFixed(0)} items=${selectedProducts.length} error=${logError ?? ''}');
       isLoading.value = false;
     }
   }

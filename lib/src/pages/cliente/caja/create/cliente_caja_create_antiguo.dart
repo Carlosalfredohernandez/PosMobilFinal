@@ -745,6 +745,56 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
     }
   }
 
+  Future<bool> _hayImpresoraDisponible({bool mostrarMensajes = true}) async {
+    try {
+      final impresoraGuardada = _storage.read('impresora');
+      if (impresoraGuardada == null || impresoraGuardada['address'] == null) {
+        if (mostrarMensajes) {
+          Get.snackbar('Impresión', 'Selecciona una impresora en Configuración');
+        }
+        return false;
+      }
+
+      final String address = impresoraGuardada['address'].toString();
+      final List<BluetoothDevice> bonded = await _bluetooth.getBondedDevices();
+      BluetoothDevice? device;
+      for (final d in bonded) {
+        if (d.address == address) {
+          device = d;
+          break;
+        }
+      }
+
+      if (device == null) {
+        if (mostrarMensajes) {
+          Get.snackbar('Impresión', 'La impresora guardada no está vinculada');
+        }
+        return false;
+      }
+
+      final bool? conectado = await _bluetooth.isConnected;
+      if (conectado != true) {
+        await _bluetooth.connect(device);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
+
+      final bool? conectadoFinal = await _bluetooth.isConnected;
+      if (conectadoFinal != true) {
+        if (mostrarMensajes) {
+          Get.snackbar('Impresión', 'No se pudo establecer conexión con la impresora');
+        }
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      if (mostrarMensajes) {
+        Get.snackbar('Impresión', 'Error validando impresora: $e');
+      }
+      return false;
+    }
+  }
+
   Widget _footerPagos(BuildContext context) {
     bool hayProductos = controlador.selectedProducts.isNotEmpty;
     return Container(
@@ -965,12 +1015,27 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: () async {
+                          if (controlador.isLoading.value) {
+                            return;
+                          }
+
                           if (pagoLocal < total) {
                             setState(() {
                               errorMsg = 'El monto recibido debe ser mayor o igual al total.';
                             });
                             return;
                           }
+
+                          final errorValidacion = controlador.validarVentaAntesDeEmitir(
+                            montoRecibido: pagoLocal,
+                          );
+                          if (errorValidacion != null) {
+                            setState(() {
+                              errorMsg = errorValidacion;
+                            });
+                            return;
+                          }
+
                           await controlador.emitirBoletaSii(context: context);
                           if ((controlador.dteXmlString ?? '').isNotEmpty) {
                             // --- Asignar datos de boleta para impresión ---
@@ -989,20 +1054,36 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                             };
                             Get.snackbar('Boleta generada', 'La boleta se generó correctamente');
                             Navigator.of(context).pop();
+
+                            final impresoraDisponible = await _hayImpresoraDisponible(
+                              mostrarMensajes: false,
+                            );
+                            if (!mounted) return;
+
                             final opcion = await showDialog<String>(
                               context: context,
                               builder: (context) => AlertDialog(
                                 title: Text('¿Qué desea hacer?'),
-                                content: Text('¿Ver PDF de la boleta o imprimir por Bluetooth?'),
+                                content: Text(
+                                  impresoraDisponible
+                                      ? '¿Ver PDF de la boleta o imprimir por Bluetooth?'
+                                      : 'No hay una impresora Bluetooth disponible. Puedes ver el PDF y configurar la impresora desde el botón Bluetooth.',
+                                ),
                                 actions: [
+                                  if (!impresoraDisponible)
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop('configurar_impresora'),
+                                      child: Text('Configurar impresora'),
+                                    ),
                                   TextButton(
                                     onPressed: () => Navigator.of(context).pop('pdf'),
                                     child: Text('Ver PDF'),
                                   ),
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop('imprimir'),
-                                    child: Text('Imprimir'),
-                                  ),
+                                  if (impresoraDisponible)
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop('imprimir'),
+                                      child: Text('Imprimir'),
+                                    ),
                                 ],
                               ),
                             );
@@ -1013,6 +1094,12 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                               });
                               controlador.limpiarCarrito();
                               controlador.codigoBarraController.clear();
+                            } else if (opcion == 'configurar_impresora') {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => ImpresorasPage(),
+                                ),
+                              );
                             } else if (opcion == 'imprimir') {
                               // Generar el PDF y enviarlo a imprimir como imagen TSPL
                               final pdf = await generarPdfBoleta();
