@@ -286,3 +286,26 @@ Fecha: 13-05-2026 (actualizado)
 ### Estado actual del módulo de boletas
 - Emisión SII + recuperación XML + generación PDF + visualización + impresión Bluetooth operan de forma integrada.
 - Persisten puntos de calibración fina dependientes de modelo de impresora (ancho/contraste), pero ya quedaron parametrizados para ajuste rápido en operación.
+
+## 16. Avances recientes (02-06-2026)
+
+### Validaciones de venta antes de emitir boleta (cliente_caja_create)
+- Se incorporó validación centralizada en el controlador de caja para bloquear emisiones inválidas antes de llamar a SII.
+- Reglas aplicadas:
+  - carrito no vacío,
+  - forma de pago obligatoria,
+  - total mayor a 0,
+  - cada ítem con nombre, cantidad > 0 y precio > 0,
+  - en efectivo, monto recibido mayor o igual al total.
+- El botón "Emitir Boleta" ahora reutiliza estas validaciones y muestra mensajes claros al usuario dentro del flujo de cobro.
+
+### Validación de impresora/conexión antes de ofrecer impresión
+- Se agregó verificación previa de impresora Bluetooth disponible y conectable antes de abrir la opción de impresión.
+- Si no hay impresora lista:
+  - el diálogo posterior a la emisión muestra solo "Ver PDF",
+  - se oculta la opción "Imprimir" para evitar errores tardíos,
+  - se habilita acción directa "Configurar impresora" para abrir la pantalla de configuración Bluetooth.
+- Resultado: mejor UX y menor tasa de fallos en el cierre de venta.
+
+### Commit de respaldo de este bloque
+- `4de317b` feat(caja): validar venta e impresora antes de imprimir.
