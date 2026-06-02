@@ -1,5 +1,6 @@
 
 // ...existing code...
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
@@ -13,9 +14,12 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'dart:ui' as ui;
 import 'package:posmobilfinal/src/pages/configuraciones/impresora.dart';
+import 'package:posmobilfinal/utils/boleta_pdf_pos.dart';
+import 'package:posmobilfinal/utils/boleta_xml_parser.dart';
 import 'package:posmobilfinal/utils/tspl_utils.dart';
 // --- COLOCAR DESPUÉS DE TODOS LOS IMPORTS ---
 
@@ -663,6 +667,41 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
       print('Error impresión PDF como imagen: $e\n$st');
     }
   }
+
+  Future<void> _imprimirPdfBoletaPosDirecto() async {
+    try {
+      final xmlString = controlador.dteXmlString;
+      if (xmlString == null || xmlString.isEmpty) {
+        Get.snackbar('Impresión', 'No hay XML de boleta para generar el PDF real');
+        return;
+      }
+
+      final boleta = parseBoletaXml(xmlString);
+      final dir = await getTemporaryDirectory();
+      final folio = (controlador.dteBoletaId ?? boleta['folio'] ?? 'BOLETA').toString();
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final outputPath = '${dir.path}/boleta_pos_${folio}_$ts.pdf';
+
+      await BoletaPdfPosGenerator.generarPdfDesdeMapa(boleta, outputPath);
+
+      final pdfBytes = await File(outputPath).readAsBytes();
+      final rasterStream = Printing.raster(pdfBytes, pages: [0], dpi: 200);
+      final raster = await rasterStream.first;
+      final Uint8List imageBytes = await raster.toPng();
+      if (imageBytes.isEmpty) {
+        throw Exception('No se pudo renderizar el PDF real a imagen');
+      }
+
+      await imprimirImagenComoTSPL(imageBytes);
+      controlador.limpiarCarrito();
+      controlador.codigoBarraController.clear();
+      Get.snackbar('Impresión', 'Boleta impresa desde PDF real');
+      Get.offAllNamed('/inicio/cliente/caja/create_antiguo');
+    } catch (e, st) {
+      Get.snackbar('Error de impresión', e.toString());
+      print('Error imprimiendo PDF real de boleta: $e\n$st');
+    }
+  }
   // Asegura que el controlador esté inicializado
   late final ClienteCajaCreateController controlador;
 
@@ -931,7 +970,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[600],
                 shape: StadiumBorder(),
-                padding: EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: 10),
               ),
               onPressed: hayProductos
                   ? () {
@@ -947,7 +986,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
               ),
             ),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 6),
           // Línea 2: Pagar Débito
           SizedBox(
             width: double.infinity,
@@ -956,34 +995,33 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue[600],
                 shape: StadiumBorder(),
-                padding: EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: 10),
               ),
               onPressed: hayProductos
-                  ? () {
+                  ? () async {
                       controlador.formaPago = 'DEBITO';
                       // TODO: Implementar flujo de pago débito
                       Get.snackbar('Débito', 'Funcionalidad en desarrollo');
+                      final pdf = pw.Document();
+                      pdf.addPage(
+                        pw.Page(
+                          build: (pw.Context context) {
+                            return pw.Center(child: pw.Text('Pago Débito'));
+                          },
+                        ),
+                      );
+                      await _imprimirPdfComoImagen(pdf);
                     }
                   : () {
                       Get.snackbar('Sin productos', 'Agrega productos antes de pagar');
                     },
-              label: TextButton(
-                onPressed: () async {
-                  final pdf = pw.Document();
-                  pdf.addPage(
-                    pw.Page(
-                      build: (pw.Context context) {
-                        return pw.Center(child: pw.Text('Pago Débito'));
-                      },
-                    ),
-                  );
-                  await _imprimirPdfComoImagen(pdf);
-                },
-                child: Text('Pagar Débito', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white)),
+              label: Text(
+                'Pagar Débito',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
               ),
             ),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 6),
           // Línea 3: Pagar Crédito
           SizedBox(
             width: double.infinity,
@@ -992,7 +1030,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.purple[700],
                 shape: StadiumBorder(),
-                padding: EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: 10),
               ),
               onPressed: hayProductos
                   ? () {
@@ -1025,16 +1063,23 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
         return StatefulBuilder(
           builder: (context, setState) {
             bool falta = pagoLocal < total;
+            final media = MediaQuery.of(context);
+            final double maxDialogContentHeight =
+                (media.size.height - media.viewInsets.bottom - 180)
+                    .clamp(220.0, media.size.height * 0.9)
+                    .toDouble();
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               title: Center(
                 child: Text('Venta al contado', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+              content: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxDialogContentHeight),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                     // Input con icono y limpiar
                     Container(
                       decoration: BoxDecoration(
@@ -1171,7 +1216,6 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                               }).toList(),
                               'ted_dd': controlador.dteXmlString ?? '',
                             };
-                            Get.snackbar('Boleta generada', 'La boleta se generó correctamente');
                             Navigator.of(context).pop();
 
                             final impresoraDisponible = await _hayImpresoraDisponible(
@@ -1220,9 +1264,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                                 ),
                               );
                             } else if (opcion == 'imprimir') {
-                              // Generar el PDF y enviarlo a imprimir como imagen TSPL
-                              final pdf = await generarPdfBoleta();
-                              await _imprimirPdfComoImagen(pdf);
+                              await _imprimirPdfBoletaPosDirecto();
                             }
                           }
                         },
@@ -1246,7 +1288,8 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                         label: Text('Volver', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
