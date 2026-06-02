@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 class BoletaProvider {
   static const String _baseUrl = 'https://divine-commitment-production-a0ed.up.railway.app/api/v1/boleta';
   static const String _trackingUrl = 'https://divine-commitment-production-a0ed.up.railway.app/api/v1/tracking';
+  static const String _cafStatusUrl = 'https://divine-commitment-production-a0ed.up.railway.app/api/v1/caf/status';
   String? lastError;
   String? lastXmlError;
   String? lastFoliosError;
@@ -25,6 +26,7 @@ class BoletaProvider {
 
     if (data is Map) {
       final keysPrioritarias = <String>[
+        'total_folios_disponibles',
         'folios_disponibles',
         'foliosDisponibles',
         'disponibles',
@@ -58,6 +60,25 @@ class BoletaProvider {
     }
 
     return _tryParseInt(data);
+  }
+
+  int? _sumarRestantesDesdeDetalles(dynamic data) {
+    if (data is! Map) return null;
+    final detalles = data['detalles'];
+    if (detalles is! List) return null;
+
+    int suma = 0;
+    bool encontro = false;
+    for (final item in detalles) {
+      if (item is Map) {
+        final restantes = _tryParseInt(item['restantes']);
+        if (restantes != null) {
+          suma += restantes;
+          encontro = true;
+        }
+      }
+    }
+    return encontro ? suma : null;
   }
 
   /// Genera una boleta electrónica en el sistema DTE
@@ -169,48 +190,50 @@ class BoletaProvider {
     return null;
   }
 
-  /// Consulta folios disponibles para emisión. Retorna null si no fue posible determinarlo.
-  Future<int?> consultarFoliosDisponibles({String? emisor}) async {
+  /// Consulta folios disponibles para emisión usando endpoint oficial de CAF.
+  /// Por defecto consulta boletas afectas (tipo 39).
+  Future<int?> consultarFoliosDisponibles({String? emisor, int tipoDte = 39}) async {
     lastFoliosError = null;
 
-    final endpoints = <Uri>[
-      Uri.parse('$_trackingUrl/folios/disponibles'),
-      Uri.parse('$_trackingUrl/folios'),
-      Uri.parse('$_baseUrl/folios/disponibles'),
-      Uri.parse('$_baseUrl/folios'),
-    ];
-
-    for (final endpoint in endpoints) {
-      try {
-        final uri = (emisor != null && emisor.trim().isNotEmpty)
-            ? endpoint.replace(queryParameters: {
-                ...endpoint.queryParameters,
-                'emisor': emisor.trim(),
-              })
-            : endpoint;
-
-        final response = await http
-            .get(
-              uri,
-              headers: {'X-API-Key': 'Vikingo80'},
-            )
-            .timeout(const Duration(seconds: 8));
-
-        if (response.statusCode == 200 && response.body.isNotEmpty) {
-          final dynamic data = jsonDecode(response.body);
-          final folios = _extraerFoliosDisponibles(data);
-          if (folios != null) return folios;
-        }
-      } on TimeoutException {
-        lastFoliosError = 'Timeout consultando folios disponibles';
-      } catch (e) {
-        lastFoliosError = 'No se pudo consultar folios: $e';
+    try {
+      final query = <String, String>{'tipo_dte': tipoDte.toString()};
+      if (emisor != null && emisor.trim().isNotEmpty) {
+        query['emisor'] = emisor.trim();
       }
-    }
 
-    if (lastFoliosError == null) {
-      lastFoliosError = 'No se pudo determinar la disponibilidad de folios';
+      final uri = Uri.parse(_cafStatusUrl).replace(queryParameters: query);
+      final response = await http
+          .get(
+            uri,
+            headers: {'X-API-Key': 'Vikingo80'},
+          )
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode != 200) {
+        lastFoliosError = 'CAF status respondió ${response.statusCode}: ${response.body}';
+        return null;
+      }
+
+      if (response.body.isEmpty) {
+        lastFoliosError = 'CAF status respondió vacío';
+        return null;
+      }
+
+      final dynamic data = jsonDecode(response.body);
+      final int? totalDirecto = _extraerFoliosDisponibles(data);
+      if (totalDirecto != null) return totalDirecto;
+
+      final int? totalPorDetalles = _sumarRestantesDesdeDetalles(data);
+      if (totalPorDetalles != null) return totalPorDetalles;
+
+      lastFoliosError = 'CAF status sin campo de folios disponibles reconocido';
+      return null;
+    } on TimeoutException {
+      lastFoliosError = 'Timeout consultando folios disponibles';
+      return null;
+    } catch (e) {
+      lastFoliosError = 'No se pudo consultar folios: $e';
+      return null;
     }
-    return null;
   }
 }
