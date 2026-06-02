@@ -556,6 +556,7 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
                     _iconScan(),
                   ],
                 ),
+                _indicadorFolios(),
               ],
             ),
           ),
@@ -669,6 +670,8 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
   void initState() {
     super.initState();
     controlador = ClienteCajaCreateController();
+    controlador.cargarConfiguracionFolios();
+    controlador.refrescarFoliosDisponibles();
   }
   // final BlueThermalPrinter _bluetooth = BlueThermalPrinter.instance;
   // final GetStorage _storage = GetStorage();
@@ -793,6 +796,120 @@ class _ClienteCajaCreatePageState extends State<ClienteCajaCreatePage> {
       }
       return false;
     }
+  }
+
+  Future<void> _abrirConfiguracionUmbralFolios() async {
+    final TextEditingController umbralController = TextEditingController(
+      text: controlador.umbralAlertaFolios.value.toString(),
+    );
+
+    final resultado = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Umbral de alerta de folios'),
+        content: TextField(
+          controller: umbralController,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(
+            hintText: 'Ej: 10',
+            helperText: 'Rango permitido: 1 a 200',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final valor = int.tryParse(umbralController.text.trim());
+              if (valor == null || valor < 1 || valor > 200) {
+                Get.snackbar('Validación', 'Ingresa un umbral entre 1 y 200');
+                return;
+              }
+              Navigator.of(context).pop(valor);
+            },
+            child: Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+
+    if (resultado != null) {
+      await controlador.actualizarUmbralAlertaFolios(resultado);
+      Get.snackbar('Folios', 'Umbral actualizado a $resultado');
+    }
+  }
+
+  Widget _indicadorFolios() {
+    return Obx(() {
+      final int? folios = controlador.foliosDisponibles.value;
+      final bool cargando = controlador.foliosConsultaEnCurso.value;
+      final int umbral = controlador.umbralAlertaFolios.value;
+
+      Color color;
+      String texto;
+      IconData icono;
+
+      if (cargando) {
+        color = Colors.blueGrey;
+        icono = Icons.hourglass_top;
+        texto = 'Folios: consultando...';
+      } else if (folios == null) {
+        color = Colors.blueGrey;
+        icono = Icons.help_outline;
+        texto = 'Folios: no disponible';
+      } else if (folios <= 0) {
+        color = Colors.red;
+        icono = Icons.error_outline;
+        texto = 'Folios: agotados';
+      } else if (folios <= umbral) {
+        color = Colors.orange;
+        icono = Icons.warning_amber_rounded;
+        texto = 'Folios: $folios (bajo)';
+      } else {
+        color = Colors.green;
+        icono = Icons.verified_outlined;
+        texto = 'Folios: $folios';
+      }
+
+      return Container(
+        margin: EdgeInsets.only(top: 8),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            Icon(icono, color: color, size: 18),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '$texto · umbral: $umbral',
+                style: TextStyle(color: color, fontWeight: FontWeight.w600),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Refrescar folios',
+              icon: Icon(Icons.refresh, size: 18, color: color),
+              onPressed: cargando
+                  ? null
+                  : () {
+                      controlador.refrescarFoliosDisponibles(mostrarMensajes: true);
+                    },
+            ),
+            IconButton(
+              tooltip: 'Configurar umbral',
+              icon: Icon(Icons.tune, size: 18, color: color),
+              onPressed: _abrirConfiguracionUmbralFolios,
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _footerPagos(BuildContext context) {

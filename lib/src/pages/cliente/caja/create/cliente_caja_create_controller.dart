@@ -18,6 +18,15 @@ import 'package:xml/xml.dart';
 
 /// 🎮 CONTROLADOR PRINCIPAL DEL POS
 class ClienteCajaCreateController extends GetxController {
+  static const int _umbralAlertaFoliosDefault = 10;
+  static const int _umbralAlertaFoliosMin = 1;
+  static const int _umbralAlertaFoliosMax = 200;
+  static const String _umbralAlertaFoliosStorageKey = 'umbral_alerta_folios';
+
+  final RxnInt foliosDisponibles = RxnInt();
+  final RxBool foliosConsultaEnCurso = false.obs;
+  final RxInt umbralAlertaFolios = _umbralAlertaFoliosDefault.obs;
+
   double _parsePrecio(String? raw) {
     if (raw == null || raw.trim().isEmpty) return 0.0;
     final normalizado = raw.replaceAll(',', '.').replaceAll(RegExp(r'[^0-9\.]'), '');
@@ -62,6 +71,59 @@ class ClienteCajaCreateController extends GetxController {
     return null;
   }
 
+  bool _esErrorSinFolios(String? error) {
+    if (error == null || error.trim().isEmpty) return false;
+    final msg = error.toLowerCase();
+    return (msg.contains('folio') || msg.contains('folios') || msg.contains('caf')) &&
+        (msg.contains('no hay') ||
+            msg.contains('agot') ||
+            msg.contains('insuf') ||
+            msg.contains('disponib') ||
+            msg.contains('vencid'));
+  }
+
+  void cargarConfiguracionFolios() {
+    final dynamic umbralGuardado = GetStorage().read(_umbralAlertaFoliosStorageKey);
+    final int umbral = umbralGuardado is int
+        ? umbralGuardado
+        : int.tryParse(umbralGuardado?.toString() ?? '') ?? _umbralAlertaFoliosDefault;
+    umbralAlertaFolios.value = umbral.clamp(_umbralAlertaFoliosMin, _umbralAlertaFoliosMax);
+  }
+
+  Future<void> actualizarUmbralAlertaFolios(int nuevoUmbral) async {
+    final int normalizado = nuevoUmbral.clamp(_umbralAlertaFoliosMin, _umbralAlertaFoliosMax);
+    umbralAlertaFolios.value = normalizado;
+    await GetStorage().write(_umbralAlertaFoliosStorageKey, normalizado);
+    update();
+  }
+
+  Future<void> refrescarFoliosDisponibles({bool mostrarMensajes = false}) async {
+    if (foliosConsultaEnCurso.value) return;
+    foliosConsultaEnCurso.value = true;
+    try {
+      final boletaProvider = BoletaProvider();
+      final int? disponibles = await boletaProvider.consultarFoliosDisponibles(
+        emisor: sesionUsuario.rut,
+      );
+      foliosDisponibles.value = disponibles;
+
+      if (mostrarMensajes) {
+        if (disponibles == null) {
+          Get.snackbar('Folios', boletaProvider.lastFoliosError ?? 'No se pudo consultar folios disponibles');
+        } else if (disponibles <= 0) {
+          Get.snackbar('❌ Sin folios', 'No hay folios disponibles para emitir boletas');
+        } else if (disponibles <= umbralAlertaFolios.value) {
+          Get.snackbar('⚠️ Folios bajos', 'Quedan $disponibles folios disponibles');
+        } else {
+          Get.snackbar('Folios', 'Disponibles: $disponibles');
+        }
+      }
+    } finally {
+      foliosConsultaEnCurso.value = false;
+      update();
+    }
+  }
+
   /// Emite boleta SII usando la API y guarda el XML real y el ID para el PDF
   Future<void> emitirBoletaSii({required BuildContext context}) async {
     final errorValidacion = validarVentaAntesDeEmitir();
@@ -77,6 +139,28 @@ class ClienteCajaCreateController extends GetxController {
     String? logFolio;
     String? logError;
     try {
+      final boletaProvider = BoletaProvider();
+
+      etapa = 'verificando_folios';
+      final foliosActuales = await boletaProvider.consultarFoliosDisponibles(
+        emisor: sesionUsuario.rut,
+      );
+      foliosDisponibles.value = foliosActuales;
+      if (foliosActuales != null) {
+        if (foliosActuales <= 0) {
+          logError = 'No hay folios disponibles para emitir boletas. Carga nuevos folios autorizados antes de continuar.';
+          Get.snackbar('❌ Sin folios', logError!);
+          return;
+        }
+
+        if (foliosActuales <= umbralAlertaFolios.value) {
+          Get.snackbar(
+            '⚠️ Folios bajos',
+            'Quedan solo $foliosActuales folios disponibles. Recomendado cargar nuevos folios pronto.',
+          );
+        }
+      }
+
       etapa = 'construyendo_payload';
       // Construir datos para la API del SII
       final boletaData = {
@@ -100,11 +184,13 @@ class ClienteCajaCreateController extends GetxController {
       };
 
       print('📤 Enviando boleta al SII...');
-      final boletaProvider = BoletaProvider();
       etapa = 'generando_boleta';
       final boletaResponse = await boletaProvider.generarBoleta(boletaData);
       if (boletaResponse == null) {
         logError = boletaProvider.lastError ?? 'No se pudo generar la boleta SII';
+        if (_esErrorSinFolios(logError)) {
+          logError = 'No se pudo generar la boleta: no hay folios disponibles o vigentes. Carga folios autorizados e intenta nuevamente.';
+        }
         Get.snackbar(
           '❌ Error',
           logError!,
@@ -254,6 +340,8 @@ class ClienteCajaCreateController extends GetxController {
   void onInit() {
     print('onInit: ClienteCajaCreateController');
     super.onInit();
+    cargarConfiguracionFolios();
+    refrescarFoliosDisponibles();
     getProducts(); // Cargar productos al inicializar
   }
   

@@ -309,3 +309,11 @@ Fecha: 13-05-2026 (actualizado)
 
 ### Commit de respaldo de este bloque
 - `4de317b` feat(caja): validar venta e impresora antes de imprimir.
+
+### Alerta temprana de folios (02-06-2026)
+- Se agregó prevalidación de folios antes de emitir boleta en flujo de caja (`cliente_caja_create_controller.dart`).
+- Si la API informa `0` folios disponibles, la emisión se bloquea con mensaje operativo claro para evitar errores al cierre de venta.
+- Si quedan pocos folios, se muestra advertencia preventiva al usuario para cargar nuevos folios autorizados con anticipación.
+- Se incorporó un indicador visual de estado de folios en la pantalla de caja (`cliente_caja_create_antiguo.dart`) con estados: consultando, no disponible, agotados, bajo umbral y normal.
+- Se habilitó ajuste de umbral de alerta (persistente en `GetStorage`) desde la misma pantalla de caja, sin necesidad de recompilar.
+- Se agregó refresco manual de folios desde UI para control operativo en turno.

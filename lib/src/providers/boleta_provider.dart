@@ -7,6 +7,58 @@ class BoletaProvider {
   static const String _trackingUrl = 'https://divine-commitment-production-a0ed.up.railway.app/api/v1/tracking';
   String? lastError;
   String? lastXmlError;
+  String? lastFoliosError;
+
+  int? _tryParseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) {
+      final soloNumeros = value.replaceAll(RegExp(r'[^0-9\-]'), '');
+      return int.tryParse(soloNumeros);
+    }
+    return null;
+  }
+
+  int? _extraerFoliosDisponibles(dynamic data) {
+    if (data == null) return null;
+
+    if (data is Map) {
+      final keysPrioritarias = <String>[
+        'folios_disponibles',
+        'foliosDisponibles',
+        'disponibles',
+        'disponible',
+        'saldo_folios',
+        'restantes',
+        'cantidad_disponible',
+        'cantidadDisponible',
+      ];
+
+      for (final key in keysPrioritarias) {
+        if (data.containsKey(key)) {
+          final parsed = _tryParseInt(data[key]);
+          if (parsed != null) return parsed;
+        }
+      }
+
+      for (final value in data.values) {
+        final parsed = _extraerFoliosDisponibles(value);
+        if (parsed != null) return parsed;
+      }
+      return null;
+    }
+
+    if (data is List) {
+      for (final item in data) {
+        final parsed = _extraerFoliosDisponibles(item);
+        if (parsed != null) return parsed;
+      }
+      return null;
+    }
+
+    return _tryParseInt(data);
+  }
 
   /// Genera una boleta electrónica en el sistema DTE
   /// Ahora retorna el objeto completo (id, ted_dd, etc)
@@ -113,6 +165,51 @@ class BoletaProvider {
       return data['estado']?.toString();
     } else if (response.statusCode == 404) {
       return '';
+    }
+    return null;
+  }
+
+  /// Consulta folios disponibles para emisión. Retorna null si no fue posible determinarlo.
+  Future<int?> consultarFoliosDisponibles({String? emisor}) async {
+    lastFoliosError = null;
+
+    final endpoints = <Uri>[
+      Uri.parse('$_trackingUrl/folios/disponibles'),
+      Uri.parse('$_trackingUrl/folios'),
+      Uri.parse('$_baseUrl/folios/disponibles'),
+      Uri.parse('$_baseUrl/folios'),
+    ];
+
+    for (final endpoint in endpoints) {
+      try {
+        final uri = (emisor != null && emisor.trim().isNotEmpty)
+            ? endpoint.replace(queryParameters: {
+                ...endpoint.queryParameters,
+                'emisor': emisor.trim(),
+              })
+            : endpoint;
+
+        final response = await http
+            .get(
+              uri,
+              headers: {'X-API-Key': 'Vikingo80'},
+            )
+            .timeout(const Duration(seconds: 8));
+
+        if (response.statusCode == 200 && response.body.isNotEmpty) {
+          final dynamic data = jsonDecode(response.body);
+          final folios = _extraerFoliosDisponibles(data);
+          if (folios != null) return folios;
+        }
+      } on TimeoutException {
+        lastFoliosError = 'Timeout consultando folios disponibles';
+      } catch (e) {
+        lastFoliosError = 'No se pudo consultar folios: $e';
+      }
+    }
+
+    if (lastFoliosError == null) {
+      lastFoliosError = 'No se pudo determinar la disponibilidad de folios';
     }
     return null;
   }
