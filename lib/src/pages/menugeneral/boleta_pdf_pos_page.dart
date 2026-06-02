@@ -1,5 +1,6 @@
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:printing/printing.dart';
 import 'dart:io';
@@ -29,6 +30,12 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
     _generarPdfYMostrar();
   }
 
+  @override
+  void dispose() {
+    _pdfController?.dispose();
+    super.dispose();
+  }
+
   Future<void> _generarPdfYMostrar() async {
     print('[PDF] Iniciando generación de PDF...');
     final arguments = Get.arguments as Map<String, dynamic>?;
@@ -41,7 +48,8 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
     try {
       final dir = await getTemporaryDirectory();
       final folio = arguments['folio'] ?? 'BOLETA';
-      final outputPath = '${dir.path}/boleta_dte_$folio.pdf';
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final outputPath = '${dir.path}/boleta_dte_${folio}_$ts.pdf';
       final boleta = arguments['xml_string'] != null
           ? parseBoletaXml(arguments['xml_string'])
           : arguments;
@@ -53,14 +61,20 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
       print('[PDF] Archivo generado: existe=$exists, tamaño=$size bytes');
       if (!exists || size < 100) {
         print('[PDF] Error: El PDF generado está vacío o corrupto');
+        if (!mounted) return;
         setState(() { _loading = false; });
         Get.snackbar('Error', 'El PDF generado está vacío o corrupto');
         return;
       }
       try {
+        _pdfController?.dispose();
         final controller = PdfController(
-          document: PdfDocument.openFile(outputPath),
+          document: PdfDocument.openFile(outputPath).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw TimeoutException('Tiempo de espera agotado al abrir el PDF'),
+          ),
         );
+        if (!mounted) return;
         setState(() {
           _pdfPath = outputPath;
           _pdfController = controller;
@@ -69,11 +83,13 @@ class _BoletaPdfPosPageState extends State<BoletaPdfPosPage> {
         print('[PDF] PDF listo y controlador inicializado');
       } catch (e) {
         print('[PDF] Error al abrir el PDF: $e');
+        if (!mounted) return;
         setState(() { _loading = false; });
         Get.snackbar('Error', 'No se pudo abrir el PDF: $e');
       }
     } catch (e) {
       print('[PDF] Error inesperado: $e');
+      if (!mounted) return;
       setState(() { _loading = false; });
       Get.snackbar('Error', 'No se pudo generar el PDF: $e');
     }
