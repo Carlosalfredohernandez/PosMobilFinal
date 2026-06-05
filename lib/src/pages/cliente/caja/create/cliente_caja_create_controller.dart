@@ -50,14 +50,21 @@ class ClienteCajaCreateController extends GetxController {
     print('CONSTRUCTOR: ClienteCajaCreateController creado');
   }
 
+  Map<String, dynamic>? _leerUsuarioEmpresaStorage() {
+    final storage = GetStorage();
+    final raw = storage.read('usuarioempresa') ?? storage.read('usuario_empresa');
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
   String _resolverApiKeyEmpresaActiva() {
     try {
-      final raw = GetStorage().read('usuarioempresa');
-      if (raw is Map) {
-        final dynamic key = raw['api_key'] ?? raw['apiKey'] ?? raw['x_api_key'];
-        final value = key?.toString().trim() ?? '';
-        if (value.isNotEmpty) return value;
-      }
+      final raw = _leerUsuarioEmpresaStorage();
+      final dynamic key = raw?['api_key'] ?? raw?['apiKey'] ?? raw?['x_api_key'];
+      final value = key?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
     } catch (_) {}
     // Fallback para compatibilidad
     return 'Vikingo80';
@@ -309,14 +316,11 @@ class ClienteCajaCreateController extends GetxController {
           );
         }).toList();
 
-        final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
-        String? empresa = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['empresa'] != null)
-            ? usuarioEmpresaRaw['empresa'].toString()
-            : '0';
+        final usuarioEmpresaRaw = _leerUsuarioEmpresaStorage();
+        final String empresa = usuarioEmpresaRaw?['empresa']?.toString() ?? '0';
 
-        String? codigoLocal = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['local_asignado'] != null)
-            ? usuarioEmpresaRaw['local_asignado'].toString()
-            : (sesionUsuario.localOficina ?? '');
+        final String codigoLocal =
+          usuarioEmpresaRaw?['local_asignado']?.toString() ?? (sesionUsuario.localOficina ?? '');
 
         Inventario inventario = Inventario(
           productos: selectedProducts.toList(),
@@ -338,11 +342,10 @@ class ClienteCajaCreateController extends GetxController {
           numero: folioDte,
           usuario: sesionUsuario.id?.toString(),
           localUsuario: (() {
-            final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
-            if (usuarioEmpresaRaw is Map &&
-                usuarioEmpresaRaw['local_asignado'] != null &&
-                usuarioEmpresaRaw['local_asignado'].toString().isNotEmpty) {
-              return usuarioEmpresaRaw['local_asignado'].toString();
+            final usuarioEmpresaRaw = _leerUsuarioEmpresaStorage();
+            final localAsignado = usuarioEmpresaRaw?['local_asignado']?.toString();
+            if (localAsignado != null && localAsignado.isNotEmpty) {
+              return localAsignado;
             } else if (sesionUsuario.localOficina != null && sesionUsuario.localOficina!.isNotEmpty) {
               return sesionUsuario.localOficina!;
             } else {
@@ -567,14 +570,11 @@ class ClienteCajaCreateController extends GetxController {
         );
       }).toList();
 
-      final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
-      String? empresa = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['empresa'] != null)
-          ? usuarioEmpresaRaw['empresa'].toString()
-          : '0';
+          final usuarioEmpresaRaw = _leerUsuarioEmpresaStorage();
+          final String empresa = usuarioEmpresaRaw?['empresa']?.toString() ?? '0';
 
-      String? codigoLocal = (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['local_asignado'] != null)
-          ? usuarioEmpresaRaw['local_asignado'].toString()
-          : (sesionUsuario.localOficina ?? '');
+          final String codigoLocal =
+            usuarioEmpresaRaw?['local_asignado']?.toString() ?? (sesionUsuario.localOficina ?? '');
 
       Inventario inventario = Inventario(
         productos: selectedProducts.toList(),
@@ -596,11 +596,10 @@ class ClienteCajaCreateController extends GetxController {
         numero: '123',
         usuario: sesionUsuario.id?.toString(),
         localUsuario: (() {
-          final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
-          if (usuarioEmpresaRaw is Map &&
-              usuarioEmpresaRaw['local_asignado'] != null &&
-              usuarioEmpresaRaw['local_asignado'].toString().isNotEmpty) {
-            return usuarioEmpresaRaw['local_asignado'].toString();
+          final usuarioEmpresaRaw = _leerUsuarioEmpresaStorage();
+          final localAsignado = usuarioEmpresaRaw?['local_asignado']?.toString();
+          if (localAsignado != null && localAsignado.isNotEmpty) {
+            return localAsignado;
           } else if (sesionUsuario.localOficina != null && sesionUsuario.localOficina!.isNotEmpty) {
             return sesionUsuario.localOficina!;
           } else {

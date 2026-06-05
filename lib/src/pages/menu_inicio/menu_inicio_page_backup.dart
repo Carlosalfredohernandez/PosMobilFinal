@@ -21,6 +21,21 @@ class MenuInicioPage extends StatefulWidget {
 
 class _MenuInicioPageState extends State<MenuInicioPage>
     with TickerProviderStateMixin {
+  Map<String, dynamic>? _leerUsuarioEmpresaStorage() {
+    final storage = GetStorage();
+    final raw = storage.read('usuarioempresa') ?? storage.read('usuario_empresa');
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
+  Future<void> _guardarUsuarioEmpresaStorage(Map<String, dynamic> data) async {
+    final storage = GetStorage();
+    await storage.write('usuarioempresa', data);
+    await storage.write('usuario_empresa', data);
+  }
+
   // Botón para acceder al mantenedor de usuarios
   Widget _buildUsuariosButton() {
     return Container(
@@ -49,8 +64,8 @@ class _MenuInicioPageState extends State<MenuInicioPage>
   }
 
   String _getSafeUserName() {
-    final usuarioEmpresa = GetStorage().read('usuarioempresa');
-    if (usuarioEmpresa is Map) {
+    final usuarioEmpresa = _leerUsuarioEmpresaStorage();
+    if (usuarioEmpresa != null) {
       if (usuarioEmpresa['nombre_empresa'] != null) {
         return usuarioEmpresa['nombre_empresa'].toString();
       } else if (usuarioEmpresa['nombre_usuario'] != null) {
@@ -167,11 +182,16 @@ class _MenuInicioPageState extends State<MenuInicioPage>
         String? sessionToken;
         final userId = GetStorage().read('usuario')?['id']?.toString();
         UsuarioEmpresa? usuarioEmpresa;
+        Map<String, dynamic>? usuarioEmpresaMap;
         if (data is List) {
           // Si el backend retorna una lista, filtrar por id
           final lista = data.map<UsuarioEmpresa>((e) => UsuarioEmpresa.fromJson(e as Map<String, dynamic>)).toList();
           usuarioEmpresa = lista.firstWhereOrNull((u) => u.id == userId);
+          if (usuarioEmpresa != null) {
+            usuarioEmpresaMap = Map<String, dynamic>.from(usuarioEmpresa.toJson());
+          }
         } else if (data is Map) {
+          usuarioEmpresaMap = Map<String, dynamic>.from(data);
           sessionToken =
               data['session_token']?.toString() ??
               data['sessionToken']?.toString();
@@ -182,9 +202,14 @@ class _MenuInicioPageState extends State<MenuInicioPage>
         }
         if (usuarioEmpresa != null) {
           usuarioEmpresa.sessionToken = sessionToken;
-          GetStorage().write('usuarioempresa', usuarioEmpresa.toJson());
+          usuarioEmpresaMap ??= Map<String, dynamic>.from(usuarioEmpresa.toJson());
+          if (sessionToken != null && sessionToken.isNotEmpty) {
+            usuarioEmpresaMap['session_token'] = sessionToken;
+            usuarioEmpresaMap['sessionToken'] = sessionToken;
+          }
+          await _guardarUsuarioEmpresaStorage(usuarioEmpresaMap);
           // Guardar también el usuario para POS (con local_asignado)
-          final usuarioSesion = Usuario(
+          Usuario(
             id: usuarioEmpresa.id,
             nombre: usuarioEmpresa.nombreUsuario,
             rut: usuarioEmpresa.rut,

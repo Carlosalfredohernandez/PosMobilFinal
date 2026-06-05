@@ -13,6 +13,15 @@ class ProductosProvider extends GetConnect {
 
   Usuario get userSession => Usuario.fromJson(GetStorage().read('usuario') ?? {});
 
+  Map<String, dynamic>? _leerUsuarioEmpresaStorage() {
+    final storage = GetStorage();
+    final raw = storage.read('usuarioempresa') ?? storage.read('usuario_empresa');
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
   void printUsuarioSessionDebug() {
     final raw = GetStorage().read('usuario');
     print('🟨 [PROVIDER] Usuario bruto en storage:');
@@ -129,13 +138,10 @@ class ProductosProvider extends GetConnect {
     printUsuarioSessionDebug();
     final session = userSession;
     // Obtener el objeto usuarioempresa desde GetStorage
-    final usuarioEmpresaRaw = GetStorage().read('usuarioempresa');
-    String? empresa;
-    if (usuarioEmpresaRaw is Map && usuarioEmpresaRaw['empresa'] != null) {
-      empresa = usuarioEmpresaRaw['empresa'].toString();
-    } else {
+    final usuarioEmpresaRaw = _leerUsuarioEmpresaStorage();
+    final String empresa = usuarioEmpresaRaw?['empresa']?.toString() ?? '';
+    if (empresa.isEmpty) {
       print('❗ No se encontró el campo empresa en usuarioempresa');
-      empresa = '';
     }
     String textLower = text.toString().toLowerCase();
     print('🔎 [findProductsOnText] Buscando "$textLower" para empresa $empresa');

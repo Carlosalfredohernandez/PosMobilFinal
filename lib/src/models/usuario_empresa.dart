@@ -21,6 +21,7 @@ class UsuarioEmpresa {
   String? numero;
   String? region;
   String? tipoContrato;
+  String? apiKey;
   dynamic roles;
   String? sessionToken;
 
@@ -40,6 +41,7 @@ class UsuarioEmpresa {
     this.numero,
     this.region,
     this.tipoContrato,
+    this.apiKey,
     this.roles,
     this.sessionToken,
   });
@@ -60,6 +62,7 @@ class UsuarioEmpresa {
     numero: json["numero"] != null ? json["numero"].toString() : null,
     region: json["region"],
     tipoContrato: json["tipo_contrato"],
+    apiKey: json["api_key"]?.toString() ?? json["apiKey"]?.toString() ?? json["x_api_key"]?.toString(),
     roles: json["roles"],
     sessionToken: json["session_token"] ?? json["sessionToken"],
   );
@@ -92,6 +95,7 @@ class UsuarioEmpresa {
     "numero": numero,
     "region": region,
     "tipo_contrato": tipoContrato,
+    "api_key": apiKey,
     "roles": roles,
   };
 }
