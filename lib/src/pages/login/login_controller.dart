@@ -45,8 +45,97 @@ class LoginController extends GetxController {
 
     return null;
   }
+void login() async {
+  String rut = rutController.text.trim();
+  String password = passwordController.text.trim();
 
-  void login() async {
+  print('🔐 Intentando login (empresa rut): $rut');
+
+  if (!isValidForm(rut, password)) return;
+
+  ResponseApi responseApi;
+  try {
+    responseApi = await usuariosProvider.login(rut, password);
+  } catch (err) {
+    print('❌ Error conectando al backend: $err');
+    Get.snackbar('Error', 'No se pudo conectar al servidor.');
+    return;
+  }
+
+  if (responseApi.success != true) {
+    print('❌ Login fallido: ${responseApi.message}');
+    Get.snackbar('Login fallido', responseApi.message ?? 'Error desconocido');
+    return;
+  }
+
+  final storage = GetStorage();
+
+  // Limpiar storage para dejar solo la nueva sesión
+  try {
+    await storage.erase();
+    print('🧹 GetStorage limpiado antes de persistir nueva sesión');
+  } catch (e) {
+    print('⚠️ No fue posible limpiar GetStorage: $e');
+  }
+
+  // Persistir usuario desde la respuesta
+  Map<String, dynamic> usuarioData = Map<String, dynamic>.from(responseApi.data ?? {});
+
+  if (usuarioData['id'] != null && usuarioData['id'] is int) {
+    usuarioData['id'] = usuarioData['id'].toString();
+  }
+  if (usuarioData['numero'] != null && usuarioData['numero'] is int) {
+    usuarioData['numero'] = usuarioData['numero'].toString();
+  }
+
+  await storage.write('usuario', usuarioData);
+
+  // Persistir posibles tokens que venga en distintos campos
+  final tokenCandidates = ['token_principal', 'token_usuario', 'token', 'session_token', 'sessionToken'];
+  for (final key in tokenCandidates) {
+    if (usuarioData.containsKey(key) && usuarioData[key] != null && usuarioData[key].toString().isNotEmpty) {
+      await storage.write(key, usuarioData[key].toString());
+    }
+  }
+
+  // Guardar RUT validado por el backend
+  final String rutLogin = (usuarioData['rut'] ?? rut).toString().trim();
+  if (rutLogin.isNotEmpty) {
+    await storage.write('rut_empresa', rutLogin);
+    await storage.write('rut_emisor', rutLogin);
+  }
+
+  // Si el objeto empresa viene embebido, persistirlo (opcional)
+  if (usuarioData['empresa'] is Map) {
+    final empresaMap = Map<String, dynamic>.from(usuarioData['empresa']);
+    await storage.write('empresa_data', empresaMap);
+    if (empresaMap['id'] != null) await storage.write('empresa_id', empresaMap['id'].toString());
+  }
+
+  // Imprimir contenido clave del storage para debugging
+  print('📦 STORAGE ASIGNADO:');
+  final keysToShow = [
+    'usuario',
+    'empresa_data',
+    'empresa_id',
+    'token_principal',
+    'token_usuario',
+    'token',
+    'session_token',
+    'usuarioempresa',
+    'rut_empresa',
+    'rut_emisor',
+    'usuario_rol'
+  ];
+  for (final k in keysToShow) {
+    print(' - $k: ${storage.read(k)}');
+  }
+
+  // Navegar SIEMPRE a menu_inicio_page_backup (elimina navegación por roles)
+  Get.offAllNamed('/menu_inicio_page_backup');
+}
+// void anteriorrr ********
+  /*void login() async {
     String rut = rutController.text.trim();
     String password = passwordController.text.trim();
 
@@ -182,7 +271,7 @@ class LoginController extends GetxController {
       irAHomePage();
     }
   }
-
+*/
 
   void irAHomePage(){
     print('🏠 Navegando a /inicio/cliente');
