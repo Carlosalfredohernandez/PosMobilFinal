@@ -317,3 +317,164 @@ Fecha: 13-05-2026 (actualizado)
 - Se incorporó un indicador visual de estado de folios en la pantalla de caja (`cliente_caja_create_antiguo.dart`) con estados: consultando, no disponible, agotados, bajo umbral y normal.
 - Se habilitó ajuste de umbral de alerta (persistente en `GetStorage`) desde la misma pantalla de caja, sin necesidad de recompilar.
 - Se agregó refresco manual de folios desde UI para control operativo en turno.
+
+## 17. Diagnóstico: Separación de autenticación Login vs DTE (10-06-2026)
+
+### Problema reportado
+"No obtiene la API key para enviar al endpoint de la API y trae el RUT del usuario de empresa y no el RUT de la empresa logeada"
+
+### Hallazgo arquitectónico crítico: Dos sistemas de autenticación separados
+Se identificó que la aplicación usa **DOS sistemas de autenticación completamente independientes**:
+
+#### 1. Backend PosMobil (backendposmobil-production.up.railway.app)
+- Autentica usuarios y empresas
+- Header: `Authorization: Bearer {token_principal}` o `{token_usuario}`
+- Persistencia: `token_principal`, `empresa_data`, `usuario`
+
+#### 2. API DTE Divine-Commitment (SII)
+- Gestiona emisión de DTE/boletas
+- Header: `X-API-Key: {api_key}` (NUNCA Bearer token)
+- **CRÍTICO:** No consume el token de login de backendposmobil
+
+**Conclusión:** El RUT de empresa NO "viaja" implícitamente en el token hacia divine-commitment porque son sistemas desacoplados. Deben resolverse por separado desde storage ANTES de emitir boleta.
+
+### Root cause: Falta de persistencia de empresa_data
+Logs capturados muestran:
+```
+[DTE][obtener_xml] empresa_data raw: null
+[DTE][obtener_xml] usuario_empresa raw: {id: 17, empresa: 23, rut: 2-7, ...}
+[DTE][obtener_xml] WARNING: no se encontró api_key en storage; se mantiene: "Vikingo80"
+[DTE][obtener_xml] rut empresa usado: ""
+[DTE][obtener_xml] XML no disponible (status 404) intento 1/5
+```
+
+**Interpretación:**
+- `empresa_data` es null → el GET a `/api/empresa/{id}` en login falló silenciosamente
+- `usuario_empresa` existe pero contiene `rut: 2-7` (RUT del CAJERO, no empresa)
+- BoletaProvider queda con `apiKey = 'Vikingo80'` (default inseguro, tenant de prueba)
+- divine-commitment busca por `api_key` incorrecto → 404 al intentar obtener XML
+
+### Líneas críticas identificadas
+
+#### 1. login_controller.dart (líneas 85–115)
+**Flujo 1 (correcto):** Si login devuelve empresa como Map
+- `empresa_data` se guarda correctamente ✓
+
+**Flujo 2 (fallido):** Si login devuelve solo empresa como ID
+- Ejecuta GET `${Environment.API_URL}api/empresa/{empresaIdStr}`
+- **Problema:** Si GET falla (HTTP error, timeout, JSON inválido), la función captura excepción y solo lanza print
+- Navegación CONTINÚA sin validar éxito → `empresa_data` queda null
+- Boleta intenta emitirse sin datos de empresa
+
+#### 2. BoletaProvider (línea 12)
+```dart
+BoletaProvider({String apiKey = 'Vikingo80'}) : _apiKey = apiKey;
+```
+**Problema:** Default hardcoded `'Vikingo80'`
+- Si `setApiKey()` nunca se llama, app usa tenant de demostración silenciosamente
+- Riesgo crítico en producción: todas las boletas contra empresa "Vikingo80"
+
+#### 3. boleta_api_demo_page.dart (líneas 116–205)
+**Cascada de fallback para resolver api_key:**
+1. `empresa_data` (correcto, fuente primaria)
+2. `usuario_empresa` (INCORRECTO: datos del USUARIO/CAJERO)
+3. `usuarioempresa` (fallback antiguo)
+
+**Problema:** Si `empresa_data` falta, cae a `usuario_empresa['rut'] = '2-7'` (RUT cajero)
+- Este RUT se usa como `emisor` en boleta → emisión con identificador incorrecto
+
+### Impacto operativo
+- **Boletas emitidas con API key incorrecta:** divine-commitment no encuentra registro
+- **Búsqueda de XML con empresa errónea:** 404 (no encontrado)
+- **RUT emisor incorrecto:** boleta tiene RUT de cajero en lugar de RUT de empresa
+- **Silenciosamente fallido:** sin error claro, el flujo "funciona" pero genera datos inválidos
+
+### Correcciones propuestas
+
+#### Fase 1: Validar y forzar persistencia de empresa_data
+- **login_controller.dart (línea 90):** El GET a `/api/empresa/{id}` debe ser **síncrono y validado**
+  - Si GET devuelve 200: extraer `api_key` y `rut` de respuesta y guardar
+  - Si GET falla (status != 200, timeout, JSON inválido): mostrar error y BLOQUEAR navegación
+  - No permitir flujo hacia caja si `empresa_data` es null
+
+- **cliente_caja_create_controller.dart:** Antes de emitir boleta, validar PRE-EMISIÓN
+  - Comprobar `GetStorage().read('empresa_data') != null`
+  - Si null: mostrar error "Empresa no configurada, vuelve a hacer login" y bloquear emisión
+
+#### Fase 2: Retirar defaults inseguros
+- **BoletaProvider (línea 12):** Cambiar `apiKey = 'Vikingo80'` por `apiKey = ''` (vacío)
+  - Lanzar excepción si `generarBoleta()` se llama sin `setApiKey()` previo
+  - Así se aterriza rápidamente si falta api_key
+
+- **boleta_api_demo_page.dart (línea 116–205):** Cambiar lógica para rechazar fallbacks
+  - `empresa_data` es fuente ÚNICA (no aceptar fallback a `usuario_empresa`)
+  - Si `empresa_data` es null: mostrar error "Empresa no disponible" y prevenir emisión
+
+#### Fase 3: Validaciones consolidadas en controlador de caja
+Antes de llamar a `_generarBoleta()`:
+```dart
+Map<String, dynamic>? empresaData = GetStorage().read('empresa_data');
+if (empresaData == null || empresaData['api_key']?.toString().isEmpty == true) {
+  Get.snackbar('Error', 'Empresa no configurada correctamente. Vuelve a hacer login.');
+  return;
+}
+String rutEmisor = empresaData['rut'] ?? empresaData['rut_emisor'] ?? '';
+if (rutEmisor.isEmpty) {
+  Get.snackbar('Error', 'RUT de empresa no disponible. Configura la empresa.');
+  return;
+}
+```
+
+### Archivos a revisar/ajustar
+- `lib/src/pages/login/login_controller.dart` — validar GET empresa y bloquear navegación si falla
+- `lib/src/providers/boleta_provider.dart` — cambiar default 'Vikingo80' a '' y lanzar excepción
+- `lib/src/pages/menugeneral/boleta_api_demo_page.dart` — rechazar fallback a usuarioempresa
+- `lib/src/pages/cliente/cliente_caja_create_controller.dart` — validar empresa_data pre-emisión
+
+### Pasos de validación post-corrección
+1. **Ejecutar login:**
+   - Verificar logs: "empresa_data guardada desde login" O "empresa_data obtenida y guardada desde API"
+   - NO debe haber: "empresa_data raw: null"
+
+2. **Antes de emitir boleta:**
+   - Verificar storage contiene `empresa_data` con `api_key` presente
+   - Verificar logs: "api_key aplicada desde 'empresa_data'" (NO fallback)
+
+3. **Emisión DTE:**
+   - Verificar header `X-API-Key` es valor REAL de empresa (NO 'Vikingo80')
+   - Verificar XML se obtiene con status 200 (NO 404)
+
+### Contexto arquitectónico
+- Token Bearer (`authorization_unificado_service.dart:_getHeaders()`) es para backendposmobil solamente
+- `X-API-Key` (`boleta_provider.dart:_headersAuth()`) es para divine-commitment, nunca Bearer
+- **Esto es por diseño:** dos plataformas, dos esquemas de autenticación → require manual resolution
+
+### Archivos de referencia de diagnóstico
+- Memoria repo: `/memories/repo/diagnostico-login-api-key-rut.md`
+- Memoria sesión: `/memories/session/diagnostico-10-06-2026.md`
+
+---
+
+## FASE 2 IMPLEMENTADA (10-06-2026)
+
+### Cambios aplicados en el código
+
+- `lib/src/providers/boleta_provider.dart`: se cambió el valor por defecto de `apiKey` de `'Vikingo80'` a `''` y se añadió un warning en el constructor si se inicializa sin `api_key`. Esto evita usar un tenant de prueba en producción y fuerza a llamar a `setApiKey()`.
+- `lib/src/pages/menugeneral/boleta_api_demo_page.dart`: se bloqueó el fallback a `usuarioempresa` en `_syncApiKeyFromStorage()` para evitar usar datos del usuario/cajero como RUT de emisor. Ahora, si no hay `empresa_data` ni `usuario_empresa` con `api_key`, se registra un error en logs y no se aplica ningún api_key por defecto.
+- `lib/src/pages/cliente/caja/create/cliente_caja_create_controller.dart`: se añadió validación previa en `validarVentaAntesDeEmitir()` que verifica que `empresa_data` exista y contenga `api_key` y `rut` antes de permitir la emisión de boletas. En caso contrario, la emisión se bloquea con mensajes claros para el usuario.
+- `lib/src/pages/login/login_controller.dart`: se mejoró el GET a `/api/empresa/{id}` para incluir `Authorization: Bearer` si existe token en storage, mayor logging (status + preview body) y bloqueo del flujo de navegación si la empresa obtenida carece de `api_key` o `rut`.
+
+### Estado y siguientes pasos
+
+- ✅ Fase 1 (persistencia de `empresa_data` en login): implementada parcialmente (se añadió intento de GET y persistencia).
+- ✅ Fase 2 (defaults seguros y validaciones): implementada (cambios listados arriba).
+- ⏳ Fase 3 (tests E2E y ajustes finos): pendiente — ejecutar login real y re-testear flujo DTE para confirmar que `empresa_data` se persiste correctamente, que `X-API-Key` se aplica desde `empresa_data` y que las llamadas a divine-commitment devuelven XML con status 200.
+
+### Instrucciones para validar localmente
+
+1. Ejecuta la app en modo debug y realiza login con un usuario ligado a una empresa.
+2. Revisa los logs en consola buscando: `GET /api/empresa/{id}` y las entradas `empresa_data guardada en storage` o errores claros (401/500/preview body).
+3. Si la empresa se guarda correctamente, intenta emitir una boleta desde la UI y verifica que los logs muestren `api_key aplicada desde "empresa_data"` y que el endpoint DTE responde 200 para el XML.
+4. Si falla la obtención de empresa por id con 401, intenta forzar un `Authorization: Bearer {token}` en la petición curl para validar si el endpoint requiere token.
+
+Si quieres, aplico aquí un pequeño checklist de comandos `curl` para que pruebes el endpoint `/api/empresa/{id}` desde tu terminal con y sin token.

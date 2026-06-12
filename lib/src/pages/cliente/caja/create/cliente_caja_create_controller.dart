@@ -126,6 +126,25 @@ class ClienteCajaCreateController extends GetxController {
   }
 
   String? validarVentaAntesDeEmitir({double? montoRecibido}) {
+    // FASE 2 (10-06-2026): Validar que empresa_data esté configurada antes de permitir emisión
+    final storage = GetStorage();
+    final Map<String, dynamic>? empresaData = storage.read('empresa_data') as Map<String, dynamic>?;
+    
+    if (empresaData == null) {
+      return '❌ Datos de empresa no disponibles. Vuelve a hacer login para configurar la empresa.';
+    }
+    
+    final apiKeyValue = empresaData['api_key']?.toString().trim() ?? '';
+    if (apiKeyValue.isEmpty) {
+      return '❌ API key de empresa no configurada. Vuelve a hacer login.';
+    }
+    
+    final rutValue = (empresaData['rut'] ?? empresaData['rut_emisor'] ?? '').toString().trim();
+    if (rutValue.isEmpty) {
+      return '❌ RUT de empresa no configurado. Vuelve a hacer login.';
+    }
+    // Fin validaciones Fase 2
+
     if (selectedProducts.isEmpty) {
       return 'Agrega al menos un producto antes de emitir la boleta.';
     }
@@ -274,6 +293,7 @@ class ClienteCajaCreateController extends GetxController {
       };
 
       etapa = 'generando_boleta';
+      _sincronizarApiKeyDte();
       final boletaResponse = await boletaProvider.generarBoleta(boletaData);
       if (boletaResponse == null) {
         logError = boletaProvider.lastError ?? 'No se pudo generar la boleta SII';
@@ -284,8 +304,14 @@ class ClienteCajaCreateController extends GetxController {
         return;
       }
 
-      final boletaId = boletaResponse['id']?.toString() ?? '';
-      final folioDte = boletaResponse['folio']?.toString() ?? boletaId;
+      final String boletaId = (boletaResponse['id'] ?? boletaResponse['data']?['id'] ?? boletaResponse['data']?['boleta']?['id'])?.toString() ?? '';
+      final String folioDte = (boletaResponse['folio'] ?? boletaResponse['data']?['folio'] ?? boletaResponse['data']?['boleta']?['folio'] ?? boletaId)?.toString() ?? '';
+      if (boletaId.isEmpty) {
+        logError = 'No se obtuvo boletaId desde SII: ${boletaResponse}';
+        print(logError);
+        Get.snackbar('❌ Error', logError!);
+        return;
+      }
       logBoletaId = boletaId;
       logFolio = folioDte;
 
@@ -912,7 +938,7 @@ class ClienteCajaCreateController extends GetxController {
     if (foliosConsultaEnCurso.value) return;
     foliosConsultaEnCurso.value = true;
     try {
-      final boletaProvider = BoletaProvider();
+      _sincronizarApiKeyDte();
       final int? disponibles = await boletaProvider.consultarFoliosDisponibles(
         emisor: sesionUsuario.rut,
       );
@@ -950,7 +976,7 @@ class ClienteCajaCreateController extends GetxController {
     String? logFolio;
     String? logError;
     try {
-      final boletaProvider = BoletaProvider();
+      _sincronizarApiKeyDte();
 
       etapa = 'verificando_folios';
       final foliosActuales = await boletaProvider.consultarFoliosDisponibles(
@@ -1008,8 +1034,14 @@ class ClienteCajaCreateController extends GetxController {
         );
         return;
       }
-      final boletaId = boletaResponse['id']?.toString() ?? '';
-      final folioDte = boletaResponse['folio']?.toString() ?? boletaId;
+      final String boletaId = (boletaResponse['id'] ?? boletaResponse['data']?['id'] ?? boletaResponse['data']?['boleta']?['id'])?.toString() ?? '';
+      final String folioDte = (boletaResponse['folio'] ?? boletaResponse['data']?['folio'] ?? boletaResponse['data']?['boleta']?['folio'] ?? boletaId)?.toString() ?? '';
+      if (boletaId.isEmpty) {
+        logError = 'No se obtuvo boletaId desde SII: ${boletaResponse}';
+        print(logError);
+        Get.snackbar('❌ Error', logError!);
+        return;
+      }
       logBoletaId = boletaId;
       logFolio = folioDte;
       print('✅ Boleta generada con ID: $boletaId, folio: $folioDte');

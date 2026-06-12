@@ -12,7 +12,11 @@ class BoletaProvider {
   String? lastXmlError;
   String? lastFoliosError;
 
-  BoletaProvider({String apiKey = 'Vikingo80'}) : _apiKey = apiKey;
+  BoletaProvider({String apiKey = ''}) : _apiKey = apiKey {
+    if (apiKey.isEmpty) {
+      print('⚠️ WARNING: BoletaProvider inicializado sin api_key. Debe llamarse setApiKey() antes de emitir boleta.');
+    }
+  }
 
   String get apiKey => _apiKey;
 
@@ -168,6 +172,38 @@ class BoletaProvider {
 
       if (attempt < maxAttempts) {
         await Future.delayed(const Duration(milliseconds: 800));
+      }
+    }
+
+    return null;
+  }
+
+  /// Intenta obtener el XML buscando por folio cuando no se dispone del ID interno.
+  /// Prueba varias rutas comunes que el backend podría soportar (folio como ruta o query).
+  Future<String?> obtenerXmlPorFolio(String folio) async {
+    lastXmlError = null;
+
+    final candidates = <Uri>[
+      Uri.parse('$_baseUrl/folio/$folio/xml'),
+      Uri.parse('$_baseUrl/folio/$folio'),
+      Uri.parse('$_baseUrl/$folio/xml'),
+      Uri.parse(_baseUrl).replace(queryParameters: {'folio': folio}),
+    ];
+
+    for (final uri in candidates) {
+      try {
+        final response = await http.get(uri, headers: _headersAuth()).timeout(const Duration(seconds: 12));
+        if (response.statusCode == 200 && response.body.isNotEmpty) {
+          return response.body;
+        }
+        lastXmlError = 'Intento ${uri.toString()} respondió ${response.statusCode}';
+        print(lastXmlError);
+      } on TimeoutException {
+        lastXmlError = 'Timeout obteniendo XML por folio desde ${uri.toString()}';
+        print(lastXmlError);
+      } catch (e) {
+        lastXmlError = 'Excepción obteniendo XML por folio desde ${uri.toString()}: $e';
+        print(lastXmlError);
       }
     }
 
