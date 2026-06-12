@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:posmobilfinal/src/models/response_api.dart';
-import 'package:posmobilfinal/src/models/usuario.dart';
+//import 'package:posmobilfinal/src/models/usuario.dart';
 import 'package:posmobilfinal/src/providers/usuarios_provider.dart';
-import 'package:posmobilfinal/src/pages/ventas/ventas_page.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:posmobilfinal/src/environment/environment.dart';
+//import 'package:posmobilfinal/src/pages/ventas/ventas_page.dart';
+//import 'dart:convert';
+//import 'package:http/http.dart' as http;
+//import 'package:posmobilfinal/src/environment/environment.dart';
+import 'package:posmobilfinal/src/pages/menu_inicio/menu_inicio_page_backup.dart';
 
 class LoginController extends GetxController {
 
@@ -16,7 +17,7 @@ class LoginController extends GetxController {
 
   UsuariosProvider usuariosProvider = UsuariosProvider();
 
-  Map<String, dynamic>? _extraerEmpresaDesdeRespuesta(dynamic parsed, String empresaIdStr) {
+  /*Map<String, dynamic>? _extraerEmpresaDesdeRespuesta(dynamic parsed, String empresaIdStr) {
     Map<String, dynamic>? toMap(dynamic value) {
       if (value is Map) return Map<String, dynamic>.from(value);
       return null;
@@ -45,6 +46,7 @@ class LoginController extends GetxController {
 
     return null;
   }
+  */
 void login() async {
   String rut = rutController.text.trim();
   String password = passwordController.text.trim();
@@ -70,14 +72,33 @@ void login() async {
 
   final storage = GetStorage();
 
-  // Limpiar storage para dejar solo la nueva sesión
-  try {
+  // Limpiar storage para dejar solo la nueva sesión   ***** antes
+  /*try {
     await storage.erase();
     print('🧹 GetStorage limpiado antes de persistir nueva sesión');
   } catch (e) {
     print('⚠️ No fue posible limpiar GetStorage: $e');
+  }*/
+  // Limpiar sólo claves de sesión antiguas (preserva empresa_data / usuarioempresa)
+  try {
+    final keysToRemove = [
+      'usuario',
+      'token_principal',
+      'token_usuario',
+      'token',
+      'session_token',
+      'sessionToken',
+      'usuario_rol',
+      'rut_empresa',
+      'rut_emisor'
+    ];
+    for (final k in keysToRemove) {
+      await storage.remove(k);
+    }
+    print('🧹 Eliminadas claves de sesión antiguas (empresa preservada)');
+  } catch (e) {
+    print('⚠️ No fue posible limpiar GetStorage: $e');
   }
-
   // Persistir usuario desde la respuesta
   Map<String, dynamic> usuarioData = Map<String, dynamic>.from(responseApi.data ?? {});
 
@@ -132,7 +153,7 @@ void login() async {
   }
 
   // Navegar SIEMPRE a menu_inicio_page_backup (elimina navegación por roles)
-  Get.offAllNamed('/menu_inicio_page_backup');
+  Get.offAll(() => MenuInicioPage());
 }
 // void anteriorrr ********
   /*void login() async {
